@@ -14,7 +14,7 @@ struct WalletApp: App {
                 Tab("Insights", systemImage: "chart.pie.fill") { InsightsView() }
             }
             .environmentObject(store)
-            .tint(Brand.purple)
+            .tint(.primary)
             .fullScreenCover(isPresented: $showTap, onDismiss: { store.endPayment(); deepLink = nil }) {
                 TapToPayView(preloaded: deepLink).environmentObject(store)
             }

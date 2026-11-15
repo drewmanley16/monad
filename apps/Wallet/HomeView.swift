@@ -134,7 +134,7 @@ struct HomeView: View {
                             Capsule().fill(Color.secondary.opacity(0.15))
                         } else {
                             ForEach(ExpenseCategory.allCases.filter { (byCat[$0] ?? 0) > 0 }) { c in
-                                Rectangle().fill(c.color.gradient)
+                                Rectangle().fill(c.color.opacity(0.75))
                                     .frame(width: max(4, g.size.width * (byCat[c] ?? 0) / spent - 2))
                             }
                         }
@@ -184,23 +184,13 @@ struct ActivityRow: View {
     let rec: PaymentRecord
     var body: some View {
         HStack(spacing: 12) {
-            ZStack(alignment: .bottomTrailing) {
-                AddressAvatar(seed: rec.merchant ?? rec.merchantName, label: rec.merchantName, size: 38)
-                Image(systemName: rec.resolvedCategory.icon)
-                    .font(.system(size: 8, weight: .bold)).foregroundStyle(.white)
-                    .frame(width: 16, height: 16).background(rec.resolvedCategory.color, in: Circle())
-                    .overlay(Circle().strokeBorder(Color(.secondarySystemGroupedBackground), lineWidth: 2))
-                    .offset(x: 4, y: 4)
-            }
+            AddressAvatar(seed: rec.merchant ?? rec.merchantName, label: rec.merchantName, size: 36)
             VStack(alignment: .leading, spacing: 2) {
                 Text(rec.merchantName).font(.subheadline.weight(.semibold))
                 HStack(spacing: 4) {
                     Text(rec.date.formatted(.relative(presentation: .named)))
-                    if let ms = rec.proposedMs {
-                        Text("·")
-                        Image(systemName: "bolt.fill").font(.system(size: 9))
-                        Text("\(ms) ms")
-                    }
+                    Text("·")
+                    Text(rec.resolvedCategory.name)
                 }
                 .font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
@@ -220,65 +210,35 @@ struct WalletCard: View {
     var compact = false
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(card.theme.gradient)
-                .overlay(alignment: .topTrailing) {
-                    Circle().fill(.white.opacity(0.18)).frame(width: 260).blur(radius: 50).offset(x: 80, y: -120)
-                }
-                .overlay(
-                    // fine diagonal texture
-                    Canvas { ctx, size in
-                        for x in stride(from: -size.height, to: size.width, by: 14) {
-                            var p = Path(); p.move(to: .init(x: x, y: size.height)); p.addLine(to: .init(x: x + size.height, y: 0))
-                            ctx.stroke(p, with: .color(.white.opacity(0.035)), lineWidth: 1)
-                        }
-                    }
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .strokeBorder(LinearGradient(colors: [.white.opacity(0.4), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .center) {
-                    HStack(spacing: 7) {
-                        Image(systemName: "hexagon.fill").font(.system(size: 15, weight: .bold))
-                        Text("tapnad").font(.system(size: 18, weight: .bold, design: .rounded))
-                    }
-                    Spacer()
-                    if card.isBusiness {
-                        Text("BUSINESS").font(.system(size: 9, weight: .heavy)).tracking(1)
-                            .padding(.horizontal, 7).padding(.vertical, 3)
-                            .background(card.theme.foreground.opacity(0.15), in: Capsule())
-                    }
-                    Image(systemName: "wave.3.right").font(.system(size: 18, weight: .semibold)).opacity(0.9)
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(card.name).font(.system(size: 15, weight: .semibold))
+                if card.isBusiness { Text("Business").font(.system(size: 12)).opacity(0.65) }
                 Spacer()
-                if !compact {
-                    Text(card.name).font(.footnote.weight(.semibold)).opacity(0.8)
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(balance.map { MON.format($0, maxFraction: 3) } ?? "—")
-                            .font(.system(size: 34, weight: .semibold, design: .rounded))
-                            .contentTransition(.numericText())
-                        Text("MON").font(.headline).opacity(0.8)
-                    }
-                    .padding(.bottom, 10)
-                }
-                HStack {
-                    Text(shortAddress(card.address)).font(.system(.footnote, design: .monospaced)).opacity(0.8)
-                    Spacer()
-                    Text("TESTNET").font(.system(size: 10, weight: .bold)).tracking(0.8)
-                        .padding(.horizontal, 7).padding(.vertical, 3)
-                        .background(card.theme.foreground.opacity(0.15), in: Capsule())
-                }
+                Image(systemName: "wave.3.right").font(.system(size: 15, weight: .medium)).opacity(0.75)
             }
-            .foregroundStyle(card.theme.foreground)
-            .padding(22)
+            Spacer()
+            if !compact {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    Text(balance.map { MON.format($0, maxFraction: 3) } ?? "—")
+                        .font(.system(size: 32, weight: .medium))
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                    Text("MON").font(.system(size: 14, weight: .medium)).opacity(0.65)
+                }
+                .padding(.bottom, 8)
+            }
+            HStack {
+                Text(shortAddress(card.address)).font(.system(size: 12, design: .monospaced)).opacity(0.65)
+                Spacer()
+                Text("tapnad").font(.system(size: 12, weight: .semibold)).opacity(0.65)
+            }
         }
+        .foregroundStyle(card.theme.foreground)
+        .padding(20)
         .aspectRatio(1.586, contentMode: .fit)
-        .shadow(color: card.theme.glow.opacity(0.35), radius: 22, y: 12)
+        .background(card.theme.color, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.white.opacity(0.08)))
     }
 }
 

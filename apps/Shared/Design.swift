@@ -34,7 +34,7 @@ struct Surface: ViewModifier {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .strokeBorder(scheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06), lineWidth: 1)
             )
-            .shadow(color: .black.opacity(scheme == .dark ? 0 : 0.04), radius: 8, y: 2)
+            
     }
 }
 
@@ -46,7 +46,7 @@ extension View {
 
 /// Animated concentric "contactless" rings.
 struct ContactlessRings: View {
-    var color: Color = Brand.purple
+    var color: Color = .primary
     var size: CGFloat = 220
     var icon: String = "wave.3.right"
     @State private var animate = false
@@ -78,7 +78,7 @@ struct SuccessCheck: View {
     var body: some View {
         ZStack {
             Circle().fill(Brand.success).frame(width: size, height: size)
-                .shadow(color: Brand.success.opacity(0.4), radius: 20, y: 8)
+
             Image(systemName: "checkmark")
                 .font(.system(size: size * 0.42, weight: .bold))
                 .foregroundStyle(.white)
@@ -101,7 +101,7 @@ struct CommitTimeline: View {
                 HStack(alignment: .top, spacing: 12) {
                     VStack(spacing: 0) {
                         ZStack {
-                            Circle().fill(row.ms != nil ? Brand.purple : Color.secondary.opacity(0.2))
+                            Circle().fill(row.ms != nil ? Color.primary : Color.secondary.opacity(0.2))
                                 .frame(width: 20, height: 20)
                             if row.ms != nil {
                                 Image(systemName: "checkmark").font(.system(size: 10, weight: .heavy)).foregroundStyle(.white)
@@ -109,7 +109,7 @@ struct CommitTimeline: View {
                         }
                         if i < rows.count - 1 {
                             Rectangle()
-                                .fill(rows[i + 1].ms != nil ? Brand.purple : Color.secondary.opacity(0.2))
+                                .fill(rows[i + 1].ms != nil ? Color.primary.opacity(0.6) : Color.secondary.opacity(0.2))
                                 .frame(width: 2, height: 26)
                         }
                     }
@@ -147,9 +147,7 @@ struct AddressAvatar: View {
         let (a, b) = hues
         ZStack {
             RoundedRectangle(cornerRadius: size * 0.3, style: .continuous)
-                .fill(LinearGradient(colors: [Color(hue: a, saturation: 0.65, brightness: 0.95),
-                                              Color(hue: b, saturation: 0.75, brightness: 0.7)],
-                                     startPoint: .topLeading, endPoint: .bottomTrailing))
+                .fill(Color(hue: a, saturation: 0.18 + b * 0.12, brightness: 0.55))
             if let label {
                 Text(String(label.prefix(1)).uppercased())
                     .font(.system(size: size * 0.42, weight: .bold, design: .rounded))

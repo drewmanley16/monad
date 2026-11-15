@@ -89,10 +89,7 @@ struct TapToPayView: View {
         VStack(spacing: 20) {
             if let req = store.request {
                 VStack(spacing: 6) {
-                    Text(String(req.merchantName.prefix(1)).uppercased())
-                        .font(.system(size: 22, weight: .semibold)).foregroundStyle(.white)
-                        .frame(width: 52, height: 52)
-                        .background(Brand.purple.gradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    AddressAvatar(seed: req.merchant, label: req.merchantName, size: 48)
                     Text(req.merchantName).font(.headline).padding(.top, 6)
                     if !req.memo.isEmpty {
                         Text(req.memo).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center).lineLimit(2)
@@ -225,7 +222,7 @@ struct ProximityMeter: View {
             GeometryReader { g in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.secondary.opacity(0.15))
-                    Capsule().fill(Brand.purple.gradient).frame(width: max(6, g.size.width * value))
+                    Capsule().fill(Color.primary).frame(width: max(6, g.size.width * value))
                 }
             }
             .frame(height: 6)

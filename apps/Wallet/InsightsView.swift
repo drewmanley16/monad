@@ -72,7 +72,7 @@ struct InsightsView: View {
             ZStack {
                 Chart(byCategory, id: \.cat) { item in
                     SectorMark(angle: .value("MON", item.total), innerRadius: .ratio(0.68), angularInset: 2)
-                        .foregroundStyle(item.cat.color.gradient)
+                        .foregroundStyle(item.cat.color)
                         .cornerRadius(5)
                 }
                 .chartLegend(.hidden)
@@ -90,7 +90,7 @@ struct InsightsView: View {
                 ForEach(byCategory, id: \.cat) { item in
                     HStack(spacing: 12) {
                         Image(systemName: item.cat.icon).font(.footnote.weight(.semibold)).foregroundStyle(.white)
-                            .frame(width: 30, height: 30).background(item.cat.color.gradient, in: RoundedRectangle(cornerRadius: 8))
+                            .frame(width: 30, height: 30).background(item.cat.color, in: RoundedRectangle(cornerRadius: 8))
                         VStack(alignment: .leading, spacing: 1) {
                             Text(item.cat.name).font(.subheadline.weight(.medium))
                             Text("\(item.count) payment\(item.count == 1 ? "" : "s")").font(.caption).foregroundStyle(.secondary)
@@ -115,7 +115,7 @@ struct InsightsView: View {
             Text("Daily spend").font(.subheadline.weight(.semibold))
             Chart(days, id: \.0) { d in
                 BarMark(x: .value("Day", d.0, unit: .day), y: .value("MON", d.1))
-                    .foregroundStyle(Brand.purple.gradient).cornerRadius(4)
+                    .foregroundStyle(Color.primary).cornerRadius(4)
             }
             .chartXScale(domain: monthRange)
             .frame(height: 140)
@@ -155,7 +155,7 @@ struct InsightsView: View {
                             ZStack(alignment: .leading) {
                                 Capsule().fill(Color.secondary.opacity(0.12))
                                 if let budget, budget > 0 {
-                                    Capsule().fill(spent > budget ? Color.red.gradient : cat.color.gradient)
+                                    Capsule().fill(spent > budget ? Color.red : cat.color)
                                         .frame(width: max(6, g.size.width * min(1, spent / budget)))
                                 }
                             }

@@ -91,8 +91,8 @@ struct ActivityView: View {
             }
             .font(.footnote.weight(.semibold))
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .foregroundStyle(selected ? Color.white : .primary)
-            .background(selected ? AnyShapeStyle(Brand.purple) : AnyShapeStyle(Color(.secondarySystemGroupedBackground)), in: Capsule())
+            .foregroundStyle(selected ? Color(.systemBackground) : .primary)
+            .background(selected ? AnyShapeStyle(Color.primary) : AnyShapeStyle(Color(.secondarySystemGroupedBackground)), in: Capsule())
         }
         .buttonStyle(.plain)
     }

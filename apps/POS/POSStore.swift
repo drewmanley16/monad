@@ -16,15 +16,7 @@ enum ProductCategory: String, Codable, CaseIterable, Identifiable {
         case .merch: "tshirt.fill"
         }
     }
-    var color: Color {
-        switch self {
-        case .coffee: T.flame
-        case .tea: T.mint
-        case .food: Color(red: 1, green: 0.8, blue: 0.3)
-        case .drinks: Color(red: 0.4, green: 0.8, blue: 1)
-        case .merch: T.magenta
-        }
-    }
+
 }
 
 struct Product: Identifiable, Codable, Hashable {
@@ -93,9 +85,9 @@ struct Customer: Identifiable {
         return counts.max { $0.value < $1.value }?.key
     }
     var tier: (name: String, color: Color) {
-        if visits >= 5 || total >= MON.parse("1")! { return ("VIP", T.flame) }
-        if visits >= 2 { return ("Regular", T.violet) }
-        return ("New", T.mint)
+        if visits >= 5 || total >= MON.parse("1")! { return ("VIP", T.amber) }
+        if visits >= 2 { return ("Regular", T.accent) }
+        return ("New", T.green)
     }
 }
 

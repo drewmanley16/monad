@@ -2,443 +2,301 @@ import SwiftUI
 
 struct RegisterView: View {
     @EnvironmentObject var store: POSStore
-    @State private var showCustom = false
     @State private var customText = ""
 
     var body: some View {
         HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 18) {
-                HStack(alignment: .bottom) {
-                    SectionHeader(title: "Register", subtitle: "\(store.todaySales.count) sales today · \(MON.format(store.todaySales.reduce(0) { $0 + $1.event.amount }, maxFraction: 3)) MON")
-                    Spacer()
-                    searchField
-                }
-                categoryChips
-                ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 158), spacing: 12)], spacing: 12) {
-                        ForEach(store.visibleProducts) { p in
-                            ProductTile(product: p, qty: store.cart[p.id] ?? 0) { store.add(p) }
+            menu
+            VRule()
+            OrderColumn().frame(width: 360)
+        }
+    }
+
+    // MARK: Menu — a typeset list, grouped by category
+
+    private var menu: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass").font(.system(size: 11)).foregroundStyle(T.faint)
+                TextField("Search", text: $store.search).textFieldStyle(.plain).font(T.sans(13))
+                Spacer()
+                Text("\(store.todaySales.count) sales today").font(T.mono(12)).foregroundStyle(T.faint)
+            }
+            .padding(.horizontal, 28).frame(height: 44)
+            Rule()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 28) {
+                    ForEach(ProductCategory.allCases) { cat in
+                        let items = store.visibleProducts.filter { $0.category == cat }
+                        if !items.isEmpty {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Label2(cat.rawValue).padding(.bottom, 8)
+                                ForEach(items) { p in MenuRow(product: p, qty: store.cart[p.id] ?? 0) { store.add(p) } }
+                            }
                         }
-                        customTile
                     }
-                    .padding(.bottom, 24)
-                    .animation(.snappy, value: store.visibleProducts.map(\.id))
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label2("Custom")
+                        HStack(spacing: 8) {
+                            TextField("Amount in MON", text: $customText).textFieldStyle(.plain).font(T.mono(13))
+                                .padding(.horizontal, 10).frame(width: 180, height: 28)
+                                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(T.rule))
+                                .onSubmit(applyCustom)
+                            Button("Add", action: applyCustom).buttonStyle(QuietAction())
+                        }
+                    }
                 }
-                .scrollIndicators(.never)
+                .padding(.horizontal, 28).padding(.vertical, 24)
+                .frame(maxWidth: 680, alignment: .leading)
             }
-            .padding(.horizontal, 28).padding(.top, 40)
-
-            OrderPanel().frame(width: 370)
-        }
-    }
-
-    private var searchField: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").foregroundStyle(T.faint)
-            TextField("Search menu", text: $store.search).textFieldStyle(.plain).frame(width: 180)
-            if !store.search.isEmpty {
-                Button { store.search = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(T.faint) }.buttonStyle(.plain)
-            }
-        }
-        .font(.system(size: 13))
-        .padding(.horizontal, 12).frame(height: 34)
-        .background(T.panel, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(T.stroke))
-    }
-
-    private var categoryChips: some View {
-        HStack(spacing: 8) {
-            chip("All", icon: "sparkles", color: T.violet, selected: store.categoryFilter == nil) { store.categoryFilter = nil }
-            ForEach(ProductCategory.allCases) { c in
-                chip(c.rawValue, icon: c.icon, color: c.color, selected: store.categoryFilter == c) {
-                    store.categoryFilter = store.categoryFilter == c ? nil : c
-                }
-            }
-        }
-    }
-
-    private func chip(_ t: String, icon: String, color: Color, selected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: { withAnimation(.snappy) { action() } }) {
-            HStack(spacing: 6) {
-                Image(systemName: icon).font(.system(size: 11, weight: .bold)).foregroundStyle(selected ? .white : color)
-                Text(t).font(.system(size: 12.5, weight: .semibold))
-            }
-            .padding(.horizontal, 13).frame(height: 32)
-            .foregroundStyle(selected ? .white : T.dim)
-            .background(
-                Capsule().fill(selected ? AnyShapeStyle(color.opacity(0.85).gradient) : AnyShapeStyle(T.panel))
-            )
-            .overlay(Capsule().strokeBorder(selected ? .white.opacity(0.2) : T.stroke))
-            .shadow(color: selected ? color.opacity(0.4) : .clear, radius: 10)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var customTile: some View {
-        Button { showCustom = true } label: {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("✏️").font(.system(size: 30))
-                Spacer(minLength: 0)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Custom amount").font(.system(size: 14, weight: .semibold))
-                    Text(store.customAmount.map { "\(MON.format($0)) MON" } ?? "Any price").font(.system(size: 12.5)).foregroundStyle(T.dim)
-                }
-            }
-            .frame(maxWidth: .infinity, minHeight: 128, alignment: .leading)
-            .padding(16)
-            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [5])).foregroundStyle(T.faint))
-        }
-        .buttonStyle(.plain)
-        .popover(isPresented: $showCustom) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Custom amount").font(.headline)
-                TextField("0.00 MON", text: $customText).textFieldStyle(.roundedBorder).frame(width: 200).onSubmit(applyCustom)
-                HStack { Spacer(); Button("Add", action: applyCustom).keyboardShortcut(.defaultAction) }
-            }
-            .padding(16)
+            .scrollIndicators(.never)
         }
     }
 
     private func applyCustom() {
         if let w = MON.parse(customText), w > 0 { store.customAmount = w }
-        customText = ""; showCustom = false
+        customText = ""
     }
 }
 
-struct ProductTile: View {
+struct MenuRow: View {
     let product: Product
     let qty: Int
     let action: () -> Void
     @State private var hover = false
-    @State private var bump = false
 
     var body: some View {
-        Button {
-            action()
-            bump.toggle()
-        } label: {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top) {
-                    Text(product.emoji).font(.system(size: 30))
-                        .frame(width: 50, height: 50)
-                        .background(product.category.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).strokeBorder(product.category.color.opacity(0.2)))
-                        .phaseAnimator([1.0, 1.15, 1.0], trigger: bump) { v, s in v.scaleEffect(s) } animation: { _ in .snappy(duration: 0.14) }
-                    Spacer()
-                    if qty > 0 {
-                        Text("\(qty)").font(.system(size: 12, weight: .heavy)).foregroundStyle(.white)
-                            .frame(minWidth: 24, minHeight: 24).background(T.fire, in: Capsule())
-                            .shadow(color: T.magenta.opacity(0.6), radius: 8)
-                            .transition(.scale.combined(with: .opacity))
-                    }
-                }
-                Spacer(minLength: 0)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(product.name).font(.system(size: 14, weight: .semibold)).lineLimit(1)
-                    Text("\(MON.format(product.price)) MON").font(.system(size: 12.5, weight: .medium, design: .monospaced)).foregroundStyle(T.dim)
-                }
+        Button(action: action) {
+            HStack(alignment: .lastTextBaseline, spacing: 10) {
+                Text(qty > 0 ? "\(qty)×" : "")
+                    .font(T.mono(12)).foregroundStyle(T.text).frame(width: 24, alignment: .leading)
+                Text(product.name).font(T.sans(14)).foregroundStyle(T.text)
+                Leader()
+                Text(MON.format(product.price, maxFraction: 3)).font(T.mono(13)).foregroundStyle(qty > 0 ? T.text : T.dim)
             }
-            .frame(maxWidth: .infinity, minHeight: 128, alignment: .leading)
-            .panel(radius: 16, padding: 16, glow: qty > 0 ? T.magenta : (hover ? product.category.color : nil))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(qty > 0 ? AnyShapeStyle(T.fire) : AnyShapeStyle(Color.clear), lineWidth: 1.5))
-            .scaleEffect(hover ? 1.02 : 1)
-            .animation(.snappy(duration: 0.18), value: hover)
-            .animation(.snappy, value: qty)
+            .padding(.vertical, 7).padding(.horizontal, 8)
+            .background(hover ? T.hover : .clear, in: RoundedRectangle(cornerRadius: 3))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .padding(.horizontal, -8)
         .onHover { hover = $0 }
     }
 }
 
-// MARK: - Order panel
+// MARK: - Order column
 
-struct OrderPanel: View {
+struct OrderColumn: View {
     @EnvironmentObject var store: POSStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Current order").font(.system(size: 17, weight: .bold))
-                    Text(store.itemCount == 0 ? "Empty" : "\(store.itemCount) item\(store.itemCount == 1 ? "" : "s")")
-                        .font(.system(size: 12)).foregroundStyle(T.dim)
-                }
+                Text("Order").font(T.sans(13, .medium))
                 Spacer()
-                if store.itemCount > 0 { Button("Clear") { store.clear() }.buttonStyle(GhostButton()) }
+                if store.itemCount > 0 { Button("Clear") { store.clear() }.buttonStyle(QuietAction()) }
             }
-            .padding(.horizontal, 22).padding(.top, 44).padding(.bottom, 14)
+            .padding(.horizontal, 22).frame(height: 44)
+            Rule()
 
             if store.itemCount == 0 {
-                Spacer()
-                VStack(spacing: 12) {
-                    ZStack {
-                        Circle().fill(T.violet.opacity(0.1)).frame(width: 84, height: 84)
-                        Image(systemName: "cart.fill").font(.system(size: 28)).foregroundStyle(T.fire)
-                    }
-                    Text("Ring something up").font(.system(size: 15, weight: .semibold))
-                    Text("Click items to build the order.\n⌘1–6 to switch sections.").font(.system(size: 12.5))
-                        .foregroundStyle(T.dim).multilineTextAlignment(.center)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("No items.").font(T.sans(13)).foregroundStyle(T.dim)
+                    Text("Click a menu item to add it.").font(T.sans(12)).foregroundStyle(T.faint)
                 }
-                .frame(maxWidth: .infinity)
+                .padding(22)
                 Spacer()
             } else {
                 ScrollView {
-                    VStack(spacing: 8) {
+                    VStack(spacing: 0) {
                         ForEach(store.lines, id: \.product.id) { line in
-                            HStack(spacing: 12) {
-                                Text(line.product.emoji).font(.system(size: 20))
-                                    .frame(width: 38, height: 38).background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(line.product.name).font(.system(size: 13.5, weight: .semibold))
-                                    Text("\(MON.format(line.product.price * Wei(line.qty))) MON").font(.system(size: 11.5, design: .monospaced)).foregroundStyle(T.dim)
-                                }
+                            HStack(spacing: 10) {
+                                Text(line.product.name).font(T.sans(13))
                                 Spacer()
-                                Stepperish(qty: line.qty, minus: { store.decrement(line.product) }, plus: { store.add(line.product) })
+                                QtyControl(qty: line.qty, minus: { store.decrement(line.product) }, plus: { store.add(line.product) })
+                                Text(MON.format(line.product.price * Wei(line.qty), maxFraction: 3)).font(T.mono(13))
+                                    .frame(width: 60, alignment: .trailing)
                             }
-                            .padding(10)
-                            .background(Color.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                            .padding(.horizontal, 22).padding(.vertical, 10)
+                            Rule().padding(.leading, 22)
                         }
                         if let c = store.customAmount {
                             HStack {
-                                Text("✏️").font(.system(size: 20)).frame(width: 38, height: 38)
-                                Text("Custom amount").font(.system(size: 13.5, weight: .semibold))
+                                Text("Custom").font(T.sans(13))
                                 Spacer()
-                                Text("\(MON.format(c)) MON").font(.system(size: 12.5, design: .monospaced))
-                                Button { store.customAmount = nil } label: { Image(systemName: "xmark.circle.fill") }
+                                Button { store.customAmount = nil } label: { Image(systemName: "xmark").font(.system(size: 9)) }
                                     .buttonStyle(.plain).foregroundStyle(T.faint)
+                                Text(MON.format(c, maxFraction: 3)).font(T.mono(13)).frame(width: 60, alignment: .trailing)
                             }
-                            .padding(10)
-                            .background(Color.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .padding(.horizontal, 22).padding(.vertical, 10)
+                            Rule().padding(.leading, 22)
                         }
                     }
-                    .padding(.horizontal, 16)
                 }
                 .scrollIndicators(.never)
             }
 
-            VStack(spacing: 14) {
-                // tip
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("TIP").font(.system(size: 10, weight: .bold)).tracking(1.2).foregroundStyle(T.faint)
-                    HStack(spacing: 6) {
-                        ForEach([0, 10, 15, 20], id: \.self) { p in
-                            Button { withAnimation(.snappy) { store.tipPercent = p } } label: {
-                                Text(p == 0 ? "None" : "\(p)%").font(.system(size: 12.5, weight: .semibold))
-                                    .frame(maxWidth: .infinity).frame(height: 30)
-                                    .foregroundStyle(store.tipPercent == p ? .white : T.dim)
-                                    .background(store.tipPercent == p ? AnyShapeStyle(T.fire) : AnyShapeStyle(Color.white.opacity(0.05)),
-                                                in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-                Rectangle().fill(T.stroke).frame(height: 1)
-                line("Subtotal", store.subtotal)
-                if store.tipPercent > 0 { line("Tip (\(store.tipPercent)%)", store.tip) }
-                line("Network fee", nil, note: "Paid by customer")
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Total").font(.system(size: 15, weight: .semibold))
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 0) {
+                    Text("Tip").font(T.sans(13)).foregroundStyle(T.dim)
                     Spacer()
-                    Text(MON.format(store.total, maxFraction: 5)).font(.system(size: 32, weight: .bold, design: .rounded))
-                        .contentTransition(.numericText()).foregroundStyle(T.text)
-                    Text("MON").font(.system(size: 13, weight: .bold)).foregroundStyle(T.dim)
-                }
-                Button { store.startCharge() } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "wave.3.right").font(.system(size: 14, weight: .bold))
-                        Text(store.total > 0 ? "Charge \(MON.format(store.total, maxFraction: 5)) MON" : "Charge")
-                        Spacer()
-                        Text("↩").font(.system(size: 13, weight: .bold)).opacity(0.7)
+                    ForEach([0, 10, 15, 20], id: \.self) { p in
+                        Button { store.tipPercent = p } label: {
+                            Text(p == 0 ? "none" : "\(p)%").font(T.mono(12))
+                                .foregroundStyle(store.tipPercent == p ? T.text : T.faint)
+                                .underline(store.tipPercent == p)
+                                .padding(.leading, 12)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .padding(.horizontal, 18).frame(height: 54)
                 }
-                .buttonStyle(FireButton(enabled: store.total > 0))
+                Rule()
+                KV(k: "Subtotal", v: MON.format(store.subtotal, maxFraction: 4))
+                if store.tipPercent > 0 { KV(k: "Tip \(store.tipPercent)%", v: MON.format(store.tip, maxFraction: 4)) }
+                KV(k: "Total MON", v: MON.format(store.total, maxFraction: 4), strong: true)
+
+                Button { store.startCharge() } label: {
+                    HStack {
+                        Text("Charge")
+                        Spacer()
+                        Text("↩").font(T.mono(12)).opacity(0.5)
+                    }
+                    .padding(.horizontal, 14).frame(height: 40)
+                }
+                .buttonStyle(PrimaryAction(enabled: store.total > 0))
                 .disabled(store.total == 0)
                 .keyboardShortcut(.return, modifiers: [])
+                .padding(.top, 4)
             }
-            .padding(20)
+            .padding(22)
         }
-        .background(T.panel.opacity(0.55))
-        .overlay(alignment: .leading) { Rectangle().fill(T.stroke).frame(width: 1) }
-        .animation(.snappy, value: store.total)
-    }
-
-    private func line(_ k: String, _ v: Wei?, note: String? = nil) -> some View {
-        HStack {
-            Text(k).foregroundStyle(T.dim)
-            Spacer()
-            if let v { Text("\(MON.format(v, maxFraction: 5)) MON").font(.system(size: 13, design: .monospaced)) }
-            if let note { Text(note).foregroundStyle(T.faint) }
-        }
-        .font(.system(size: 13))
     }
 }
 
-struct Stepperish: View {
+struct QtyControl: View {
     let qty: Int
     let minus: () -> Void
     let plus: () -> Void
     var body: some View {
-        HStack(spacing: 0) {
-            Button(action: minus) { Image(systemName: "minus").frame(width: 26, height: 26).contentShape(Rectangle()) }
-            Text("\(qty)").font(.system(size: 12.5, weight: .bold, design: .monospaced)).frame(minWidth: 20)
-            Button(action: plus) { Image(systemName: "plus").frame(width: 26, height: 26).contentShape(Rectangle()) }
+        HStack(spacing: 8) {
+            Button(action: minus) { Text("−").frame(width: 14) }
+            Text("\(qty)").frame(minWidth: 14)
+            Button(action: plus) { Text("+").frame(width: 14) }
         }
         .buttonStyle(.plain)
-        .font(.system(size: 10, weight: .heavy))
-        .background(Color.white.opacity(0.06), in: Capsule())
-        .overlay(Capsule().strokeBorder(T.stroke))
+        .font(T.mono(12))
+        .foregroundStyle(T.dim)
     }
 }
 
-// MARK: - Charge takeover (full window)
+// MARK: - Charge screen
 
-struct ChargeTakeover: View {
+struct ChargeScreen: View {
     @EnvironmentObject var store: POSStore
-
-    private var isPaid: Bool { if case .paid = store.charge { return true }; return false }
 
     var body: some View {
         ZStack {
-            AuroraBackground(colors: isPaid
-                ? [T.bg, T.mint.opacity(0.45), T.bg, Color.teal.opacity(0.4), T.bg, T.mint.opacity(0.3), T.bg, T.violet.opacity(0.25), T.bg]
-                : [T.bg, T.violet.opacity(0.6), T.bg, T.magenta.opacity(0.5), T.bg, T.pink.opacity(0.4), T.bg, T.violet.opacity(0.35), T.bg])
-            .animation(.easeInOut(duration: 0.8), value: isPaid)
-            Color.black.opacity(0.25).ignoresSafeArea()
-
+            T.bg.ignoresSafeArea()
             switch store.charge {
-            case .awaiting(let req): awaiting(req).transition(.opacity.combined(with: .scale(scale: 0.97)))
-            case .paid(let req, let ev): paid(req, ev).transition(.opacity.combined(with: .scale(scale: 1.03)))
+            case .awaiting(let req): awaiting(req)
+            case .paid(let req, let ev): paid(req, ev)
             case .idle: EmptyView()
             }
-
-            if isPaid { Confetti().ignoresSafeArea() }
-
             VStack {
                 Spacer()
-                ticker
+                HStack(spacing: 14) {
+                    Circle().fill(store.connected ? T.green : T.amber).frame(width: 5, height: 5)
+                    Text("Monad testnet").foregroundStyle(T.dim)
+                    Text("block \(store.blockNumber.formatted())")
+                        .contentTransition(.numericText(value: Double(store.blockNumber)))
+                    Text("\(store.blockTimeMs ?? 0)ms blocks").foregroundStyle(T.faint)
+                }
+                .font(T.mono(11.5))
+                .animation(.default, value: store.blockNumber)
+                .padding(.bottom, 28)
             }
         }
-        .animation(.spring(response: 0.5, dampingFraction: 0.82), value: isPaid)
     }
 
     private func awaiting(_ req: PaymentRequest) -> some View {
-        VStack(spacing: 30) {
-            VStack(spacing: 10) {
-                Text(store.merchantName.uppercased()).font(.system(size: 12, weight: .heavy)).tracking(3).foregroundStyle(.white.opacity(0.6))
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text(MON.format(req.amount, maxFraction: 5)).font(.system(size: 96, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                    Text("MON").font(.system(size: 30, weight: .heavy, design: .rounded)).foregroundStyle(.white.opacity(0.6))
+        HStack(alignment: .center, spacing: 80) {
+            VStack(alignment: .leading, spacing: 18) {
+                Label2(store.merchantName)
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text(MON.format(req.amount, maxFraction: 4)).font(T.mono(84, .light))
+                    Text("MON").font(T.mono(20)).foregroundStyle(T.dim)
                 }
                 if !req.memo.isEmpty {
-                    Text(req.memo).font(.system(size: 15, weight: .medium)).foregroundStyle(.white.opacity(0.7)).lineLimit(1)
+                    Text(req.memo).font(T.sans(14)).foregroundStyle(T.dim).frame(maxWidth: 460, alignment: .leading)
                 }
-            }
-
-            HStack(spacing: 48) {
-                VStack(spacing: 14) {
-                    ZStack {
-                        ContactlessRings(color: .white, size: 250, icon: "iphone.radiowaves.left.and.right")
-                    }
-                    Text("Hold iPhone near this Mac").font(.system(size: 17, weight: .semibold)).foregroundStyle(.white)
+                Rule().frame(width: 460).padding(.vertical, 6)
+                HStack(spacing: 10) {
+                    PulseDot()
+                    Text("Hold iPhone near this Mac, or scan.").font(T.sans(15))
                 }
-                VStack(spacing: 14) {
-                    Image(nsImage: qrNSImage(req.url.absoluteString)).interpolation(.none).resizable()
-                        .frame(width: 150, height: 150).padding(12)
-                        .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        .shadow(color: .black.opacity(0.4), radius: 20, y: 10)
-                    Text("or scan to pay").font(.system(size: 14, weight: .medium)).foregroundStyle(.white.opacity(0.7))
-                }
+                Text("Waiting for the payment to appear on chain.").font(T.sans(12.5)).foregroundStyle(T.faint)
+                Button("Cancel") { store.cancelCharge() }.buttonStyle(QuietAction()).keyboardShortcut(.cancelAction).padding(.top, 10)
             }
-
-            Button { store.cancelCharge() } label: {
-                Text("Cancel").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white.opacity(0.8))
-                    .padding(.horizontal, 20).frame(height: 34)
-                    .background(.white.opacity(0.1), in: Capsule())
-                    .overlay(Capsule().strokeBorder(.white.opacity(0.2)))
-            }
-            .buttonStyle(.plain)
-            .keyboardShortcut(.cancelAction)
+            Image(nsImage: qrNSImage(req.url.absoluteString)).interpolation(.none).resizable()
+                .frame(width: 180, height: 180).padding(14)
+                .background(T.text, in: RoundedRectangle(cornerRadius: 4))
         }
     }
 
     private func paid(_ req: PaymentRequest, _ ev: PaidEvent) -> some View {
-        VStack(spacing: 26) {
-            SuccessCheck(size: 120)
-            VStack(spacing: 8) {
-                Text("Approved").font(.system(size: 52, weight: .heavy, design: .rounded)).foregroundStyle(.white)
-                HStack(spacing: 10) {
-                    AddressAvatar(seed: ev.payer, size: 22)
-                    Text("\(MON.format(ev.amount, maxFraction: 5)) MON from \(shortAddress(ev.payer))")
-                        .font(.system(size: 16, weight: .medium, design: .monospaced)).foregroundStyle(.white.opacity(0.8))
-                }
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 10) {
+                Image(systemName: "checkmark").font(.system(size: 14, weight: .semibold)).foregroundStyle(T.green)
+                Text("Paid").font(T.sans(15, .medium))
             }
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(MON.format(ev.amount, maxFraction: 4)).font(T.mono(84, .light))
+                Text("MON").font(T.mono(20)).foregroundStyle(T.dim)
+            }
+            Text("from \(ev.payer)").font(T.mono(12.5)).foregroundStyle(T.dim)
 
-            HStack(spacing: 0) {
+            Rule().frame(width: 520).padding(.vertical, 6)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Label2("Settlement")
                 ForEach(CommitState.timeline, id: \.self) { s in
-                    VStack(spacing: 8) {
-                        ZStack {
-                            Circle().fill(store.stateMs[s] != nil ? T.mint : Color.white.opacity(0.12)).frame(width: 34, height: 34)
-                                .shadow(color: store.stateMs[s] != nil ? T.mint : .clear, radius: 10)
-                            Image(systemName: store.stateMs[s] != nil ? "checkmark" : "ellipsis")
-                                .font(.system(size: 13, weight: .heavy)).foregroundStyle(store.stateMs[s] != nil ? .black : .white.opacity(0.5))
-                        }
-                        Text(s.rawValue).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
-                        Text(store.stateMs[s].map { "+\($0) ms" } ?? "—").font(.system(size: 13, weight: .medium, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.65)).contentTransition(.numericText())
-                    }
-                    .frame(width: 150)
-                    if s != .finalized {
-                        Rectangle().fill(store.stateMs[CommitState.timeline[CommitState.timeline.firstIndex(of: s)! + 1]] != nil ? T.mint : .white.opacity(0.15))
-                            .frame(width: 60, height: 2).offset(y: -30)
+                    HStack(spacing: 10) {
+                        Circle().fill(store.stateMs[s] != nil ? s.color : T.faint.opacity(0.4)).frame(width: 6, height: 6)
+                        Text(s.rawValue).font(T.sans(14)).foregroundStyle(store.stateMs[s] != nil ? T.text : T.faint)
+                        Leader()
+                        Text(store.stateMs[s].map { "+\($0) ms" } ?? "…").font(T.mono(13))
+                            .foregroundStyle(store.stateMs[s] != nil ? T.text : T.faint)
+                            .contentTransition(.numericText())
                     }
                 }
             }
-            .padding(.vertical, 22).padding(.horizontal, 28)
-            .background(.ultraThinMaterial.opacity(0.6), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(.white.opacity(0.12)))
-            .animation(.spring(duration: 0.35), value: store.stateMs)
+            .frame(width: 520)
+            .animation(.default, value: store.stateMs)
 
-            HStack(spacing: 12) {
-                Link(destination: URL(string: Chain.explorerTx + ev.txHash)!) {
-                    Label("Block #\(ev.blockNumber.formatted())", systemImage: "arrow.up.right")
-                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(.white.opacity(0.85))
-                        .padding(.horizontal, 16).frame(height: 40)
-                        .background(.white.opacity(0.1), in: Capsule())
-                }
-                .buttonStyle(.plain)
+            HStack(spacing: 10) {
                 Button { store.newSale() } label: {
-                    HStack(spacing: 8) { Text("New sale"); Text("↩").opacity(0.6) }
-                        .font(.system(size: 14, weight: .bold)).foregroundStyle(.black)
-                        .padding(.horizontal, 24).frame(height: 40)
-                        .background(.white, in: Capsule())
+                    HStack { Text("New sale"); Text("↩").font(T.mono(12)).opacity(0.5) }.padding(.horizontal, 16).frame(height: 34)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PrimaryAction())
                 .keyboardShortcut(.return, modifiers: [])
+                Link(destination: URL(string: Chain.explorerTx + ev.txHash)!) {
+                    Text("Block \(ev.blockNumber.formatted()) ↗").font(T.mono(12))
+                }
+                .foregroundStyle(T.dim)
+                .padding(.leading, 6)
             }
+            .padding(.top, 10)
         }
     }
+}
 
-    private var ticker: some View {
-        HStack(spacing: 18) {
-            HStack(spacing: 6) {
-                Circle().fill(T.mint).frame(width: 6, height: 6).shadow(color: T.mint, radius: 4)
-                Text("MONAD TESTNET").font(.system(size: 10, weight: .heavy)).tracking(1.5)
-            }
-            Text("BLOCK \(store.blockNumber.formatted())").font(.system(size: 11, weight: .semibold, design: .monospaced))
-                .contentTransition(.numericText(value: Double(store.blockNumber)))
-            Text("\(store.blockTimeMs ?? 0) MS BLOCKS").font(.system(size: 11, weight: .semibold, design: .monospaced))
-            Text("WATCHING monadLogs IN REAL TIME").font(.system(size: 11, weight: .semibold, design: .monospaced)).opacity(0.6)
-        }
-        .foregroundStyle(.white.opacity(0.75))
-        .padding(.horizontal, 18).frame(height: 34)
-        .background(.black.opacity(0.35), in: Capsule())
-        .overlay(Capsule().strokeBorder(.white.opacity(0.1)))
-        .padding(.bottom, 26)
-        .animation(.snappy, value: store.blockNumber)
+struct PulseDot: View {
+    @State private var on = false
+    var body: some View {
+        Circle().fill(T.text).frame(width: 6, height: 6)
+            .opacity(on ? 0.25 : 1)
+            .animation(.easeInOut(duration: 0.9).repeatForever(), value: on)
+            .onAppear { on = true }
     }
 }

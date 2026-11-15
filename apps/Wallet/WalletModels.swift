@@ -6,31 +6,31 @@ enum CardTheme: String, Codable, CaseIterable, Identifiable {
     case monad, midnight, aurora, sunset, graphite, lime
     var id: String { rawValue }
 
+    // Raw values kept for saved data; presented as plain, solid finishes.
     var name: String {
         switch self {
-        case .monad: "Monad"
-        case .midnight: "Midnight"
-        case .aurora: "Aurora"
-        case .sunset: "Sunset"
-        case .graphite: "Titanium"
-        case .lime: "Volt"
+        case .monad: "Violet"
+        case .midnight: "Black"
+        case .aurora: "Slate"
+        case .sunset: "Clay"
+        case .graphite: "Silver"
+        case .lime: "Sage"
         }
     }
 
-    var colors: [Color] {
+    var color: Color {
         switch self {
-        case .monad: [Color(red: 0.55, green: 0.45, blue: 1.0), Color(red: 0.36, green: 0.22, blue: 0.86), Brand.deep]
-        case .midnight: [Color(red: 0.16, green: 0.16, blue: 0.2), Color(red: 0.06, green: 0.06, blue: 0.08), .black]
-        case .aurora: [Color(red: 0.2, green: 0.85, blue: 0.8), Color(red: 0.15, green: 0.45, blue: 0.95), Color(red: 0.2, green: 0.1, blue: 0.5)]
-        case .sunset: [Color(red: 1.0, green: 0.62, blue: 0.3), Color(red: 0.95, green: 0.3, blue: 0.45), Color(red: 0.45, green: 0.12, blue: 0.5)]
-        case .graphite: [Color(red: 0.82, green: 0.82, blue: 0.84), Color(red: 0.55, green: 0.56, blue: 0.6), Color(red: 0.3, green: 0.31, blue: 0.34)]
-        case .lime: [Color(red: 0.85, green: 1.0, blue: 0.35), Color(red: 0.35, green: 0.8, blue: 0.4), Color(red: 0.05, green: 0.3, blue: 0.25)]
+        case .monad: Color(red: 0.42, green: 0.36, blue: 0.82)
+        case .midnight: Color(red: 0.11, green: 0.11, blue: 0.12)
+        case .aurora: Color(red: 0.27, green: 0.33, blue: 0.40)
+        case .sunset: Color(red: 0.66, green: 0.42, blue: 0.33)
+        case .graphite: Color(red: 0.80, green: 0.80, blue: 0.79)
+        case .lime: Color(red: 0.55, green: 0.62, blue: 0.52)
         }
     }
 
-    var gradient: LinearGradient { LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing) }
-    var glow: Color { colors[1] }
-    var foreground: Color { self == .graphite || self == .lime ? Color.black.opacity(0.85) : .white }
+    var gradient: LinearGradient { LinearGradient(colors: [color, color], startPoint: .top, endPoint: .bottom) }
+    var foreground: Color { self == .graphite ? Color.black.opacity(0.82) : .white }
 }
 
 // MARK: - Cards (each card = its own on-device key)
@@ -73,12 +73,12 @@ enum ExpenseCategory: String, Codable, CaseIterable, Identifiable {
 
     var color: Color {
         switch self {
-        case .food: .orange
-        case .shopping: .pink
-        case .travel: .teal
-        case .office: .blue
-        case .entertainment: .purple
-        case .other: .gray
+        case .food: Color(red: 0.80, green: 0.55, blue: 0.35)
+        case .shopping: Color(red: 0.72, green: 0.45, blue: 0.52)
+        case .travel: Color(red: 0.38, green: 0.60, blue: 0.62)
+        case .office: Color(red: 0.42, green: 0.52, blue: 0.75)
+        case .entertainment: Color(red: 0.58, green: 0.48, blue: 0.72)
+        case .other: Color(red: 0.55, green: 0.55, blue: 0.57)
         }
     }
 

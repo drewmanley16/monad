@@ -1,195 +1,153 @@
 import SwiftUI
 
-/// Tapnad POS — dark neon design system.
+/// Tapnad POS — quiet, typographic design system.
+/// Near-black surface, hairline rules, monospaced figures. Color is reserved for status.
 enum T {
-    static let bg = Color(red: 0.035, green: 0.031, blue: 0.051)          // #09080D
-    static let panel = Color(red: 0.075, green: 0.067, blue: 0.102)       // #13111A
-    static let panel2 = Color(red: 0.106, green: 0.094, blue: 0.141)      // #1B1824
-    static let stroke = Color.white.opacity(0.07)
-    static let text = Color(red: 0.96, green: 0.95, blue: 1.0)
-    static let dim = Color(red: 0.6, green: 0.58, blue: 0.7)
-    static let faint = Color(red: 0.38, green: 0.36, blue: 0.46)
+    static let bg = Color(red: 0.047, green: 0.047, blue: 0.051)          // #0C0C0D
+    static let raised = Color(red: 0.078, green: 0.078, blue: 0.082)      // #141415
+    static let hover = Color.white.opacity(0.035)
+    static let rule = Color.white.opacity(0.08)
+    static let text = Color(red: 0.93, green: 0.93, blue: 0.925)          // #EDEDEC
+    static let dim = Color(red: 0.56, green: 0.56, blue: 0.56)
+    static let faint = Color(red: 0.36, green: 0.36, blue: 0.37)
 
-    static let violet = Color(red: 0.514, green: 0.431, blue: 0.976)      // #836EF9
-    static let magenta = Color(red: 0.78, green: 0.35, blue: 1.0)
-    static let pink = Color(red: 1.0, green: 0.38, blue: 0.64)
-    static let flame = Color(red: 1.0, green: 0.55, blue: 0.25)
-    static let mint = Color(red: 0.22, green: 0.92, blue: 0.6)
+    static let accent = Color(red: 0.6, green: 0.55, blue: 1.0)           // used sparingly
+    static let amber = Color(red: 0.86, green: 0.66, blue: 0.32)
+    static let blue = Color(red: 0.45, green: 0.62, blue: 0.95)
+    static let green = Color(red: 0.42, green: 0.78, blue: 0.52)
 
-    static let fire = LinearGradient(colors: [violet, magenta, pink], startPoint: .leading, endPoint: .trailing)
-    static let fireDiag = LinearGradient(colors: [violet, magenta, pink, flame], startPoint: .topLeading, endPoint: .bottomTrailing)
+    static let mono = Font.system(size: 13, weight: .regular, design: .monospaced)
+    static func mono(_ size: CGFloat, _ w: Font.Weight = .regular) -> Font { .system(size: size, weight: w, design: .monospaced) }
+    static func sans(_ size: CGFloat, _ w: Font.Weight = .regular) -> Font { .system(size: size, weight: w) }
 }
 
-struct Panel: ViewModifier {
-    var radius: CGFloat = 16
-    var padding: CGFloat = 18
-    var glow: Color? = nil
+/// Small-caps section label: "COFFEE", "RECEIPT"…
+struct Label2: View {
+    let text: String
+    init(_ text: String) { self.text = text }
+    var body: some View {
+        Text(text.uppercased()).font(.system(size: 10.5, weight: .medium)).tracking(1.1).foregroundStyle(T.faint)
+    }
+}
+
+struct Rule: View {
+    var body: some View { Rectangle().fill(T.rule).frame(height: 1) }
+}
+
+struct VRule: View {
+    var body: some View { Rectangle().fill(T.rule).frame(width: 1) }
+}
+
+/// Hairline-outlined block, no fill, no shadow.
+struct Outline: ViewModifier {
+    var padding: CGFloat = 16
     func body(content: Content) -> some View {
-        content
-            .padding(padding)
-            .background(
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .fill(LinearGradient(colors: [T.panel2.opacity(0.9), T.panel], startPoint: .top, endPoint: .bottom))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .strokeBorder(LinearGradient(colors: [.white.opacity(0.10), .white.opacity(0.03)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
-            )
-            .shadow(color: (glow ?? .clear).opacity(0.25), radius: 24, y: 8)
+        content.padding(padding)
+            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(T.rule))
     }
 }
 
 extension View {
-    func panel(radius: CGFloat = 16, padding: CGFloat = 18, glow: Color? = nil) -> some View {
-        modifier(Panel(radius: radius, padding: padding, glow: glow))
-    }
+    func outlined(padding: CGFloat = 16) -> some View { modifier(Outline(padding: padding)) }
 }
 
-struct FireButton: ButtonStyle {
+/// Primary action: solid off-white, black text.
+struct PrimaryAction: ButtonStyle {
     var enabled = true
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 15, weight: .semibold))
-            .foregroundStyle(.white)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(enabled ? AnyShapeStyle(T.fire) : AnyShapeStyle(Color.white.opacity(0.08)))
-            )
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.white.opacity(enabled ? 0.25 : 0.05), lineWidth: 1))
-            .shadow(color: enabled ? T.magenta.opacity(configuration.isPressed ? 0.2 : 0.45) : .clear, radius: 18, y: 6)
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .animation(.snappy(duration: 0.15), value: configuration.isPressed)
+            .font(T.sans(13, .medium))
+            .foregroundStyle(enabled ? Color.black : T.faint)
+            .background(enabled ? T.text.opacity(configuration.isPressed ? 0.8 : 1) : Color.white.opacity(0.05),
+                        in: RoundedRectangle(cornerRadius: 4))
     }
 }
 
-struct GhostButton: ButtonStyle {
+/// Secondary action: text with hairline border.
+struct QuietAction: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13, weight: .semibold))
+            .font(T.sans(12, .medium))
             .foregroundStyle(T.text)
-            .padding(.horizontal, 12).frame(height: 32)
-            .background(Color.white.opacity(configuration.isPressed ? 0.1 : 0.06), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(T.stroke))
+            .padding(.horizontal, 10).frame(height: 26)
+            .background(configuration.isPressed ? T.hover : .clear, in: RoundedRectangle(cornerRadius: 4))
+            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(T.rule))
     }
 }
 
-/// Slowly drifting mesh-gradient backdrop.
-struct AuroraBackground: View {
-    var colors: [Color] = [T.bg, T.violet.opacity(0.55), T.bg, T.magenta.opacity(0.45), T.bg, T.pink.opacity(0.35), T.bg, T.violet.opacity(0.3), T.bg]
-    var body: some View {
-        TimelineView(.animation) { ctx in
-            let t = ctx.date.timeIntervalSinceReferenceDate
-            let s = Float(sin(t * 0.35)) * 0.12, c = Float(cos(t * 0.27)) * 0.12
-            MeshGradient(width: 3, height: 3, points: [
-                [0, 0], [0.5 + s, 0], [1, 0],
-                [0, 0.5 + c], [0.5 + c, 0.5 - s], [1, 0.5 + s],
-                [0, 1], [0.5 - c, 1], [1, 1],
-            ], colors: colors)
-        }
-        .ignoresSafeArea()
-    }
-}
-
-/// Confetti burst rendered with Canvas.
-struct Confetti: View {
-    struct P { let x: Double; let vx: Double; let vy: Double; let spin: Double; let color: Color; let size: Double }
-    @State private var start = Date()
-    private let particles: [P] = (0..<140).map { _ in
-        P(x: Double.random(in: 0.3...0.7), vx: Double.random(in: -0.5...0.5), vy: Double.random(in: -1.25 ... -0.55),
-          spin: Double.random(in: -8...8), color: [T.violet, T.magenta, T.pink, T.flame, T.mint, .white].randomElement()!,
-          size: Double.random(in: 5...10))
-    }
-
-    var body: some View {
-        TimelineView(.animation) { ctx in
-            Canvas { g, size in
-                let t = ctx.date.timeIntervalSince(start)
-                guard t < 3.2 else { return }
-                for p in particles {
-                    let x = (p.x + p.vx * t * 0.6) * size.width
-                    let y = size.height * 0.55 + (p.vy * t + 0.9 * t * t) * size.height * 0.5
-                    var r = g
-                    r.translateBy(x: x, y: y)
-                    r.rotate(by: .radians(p.spin * t))
-                    r.opacity = max(0, 1 - t / 3.2)
-                    r.fill(Path(CGRect(x: -p.size / 2, y: -p.size / 4, width: p.size, height: p.size / 2)), with: .color(p.color))
-                }
-            }
-        }
-        .allowsHitTesting(false)
-        .onAppear { start = Date() }
-    }
-}
-
-struct SectionHeader: View {
+struct PageTitle: View {
     let title: String
-    var subtitle: String? = nil
+    var detail: String? = nil
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.system(size: 30, weight: .bold)).foregroundStyle(T.text)
-            if let subtitle { Text(subtitle).font(.system(size: 14)).foregroundStyle(T.dim) }
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(title).font(T.sans(22, .semibold)).foregroundStyle(T.text)
+            if let detail { Text(detail).font(T.mono(12)).foregroundStyle(T.dim) }
         }
     }
 }
 
-struct Tag: View {
-    let text: String
-    var color: Color = T.violet
-    var body: some View {
-        Text(text).font(.system(size: 10.5, weight: .bold)).tracking(0.4)
-            .foregroundStyle(color)
-            .padding(.horizontal, 7).padding(.vertical, 3)
-            .background(color.opacity(0.14), in: Capsule())
-            .overlay(Capsule().strokeBorder(color.opacity(0.25)))
-    }
-}
-
-struct StatePill: View {
-    let state: CommitState
+extension CommitState {
     var color: Color {
-        switch state {
-        case .proposed: T.flame
-        case .voted: Color(red: 0.4, green: 0.65, blue: 1)
-        case .finalized: T.mint
-        case .verified: T.violet
+        switch self {
+        case .proposed: T.amber
+        case .voted: T.blue
+        case .finalized: T.green
+        case .verified: T.accent
         }
-    }
-    var body: some View {
-        HStack(spacing: 5) {
-            Circle().fill(color).frame(width: 6, height: 6).shadow(color: color, radius: 3)
-            Text(state.rawValue)
-        }
-        .font(.system(size: 11, weight: .semibold))
-        .foregroundStyle(color)
-        .padding(.horizontal, 8).padding(.vertical, 3)
-        .background(color.opacity(0.12), in: Capsule())
     }
 }
 
-/// Tiny sparkline.
-struct Sparkline: View {
-    let values: [Double]
-    var color: Color = T.violet
+/// "● Finalized" — dot + word, no pill.
+struct StateLabel: View {
+    let state: CommitState
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle().fill(state.color).frame(width: 5, height: 5)
+            Text(state.rawValue).font(T.sans(12)).foregroundStyle(T.dim)
+        }
+    }
+}
+
+/// Dotted leader between a label and a value, menu-style.
+struct Leader: View {
     var body: some View {
         GeometryReader { g in
-            let mx = max(values.max() ?? 1, 0.0001), mn = values.min() ?? 0
-            let pts = values.enumerated().map { i, v in
-                CGPoint(x: g.size.width * Double(i) / Double(max(values.count - 1, 1)),
-                        y: g.size.height * (1 - (v - mn) / max(mx - mn, 0.0001)))
-            }
-            ZStack {
-                Path { p in
-                    guard let f = pts.first else { return }
-                    p.move(to: CGPoint(x: f.x, y: g.size.height)); pts.forEach { p.addLine(to: $0) }
-                    p.addLine(to: CGPoint(x: pts.last!.x, y: g.size.height)); p.closeSubpath()
+            Path { p in p.move(to: .init(x: 0, y: g.size.height - 3)); p.addLine(to: .init(x: g.size.width, y: g.size.height - 3)) }
+                .stroke(T.faint.opacity(0.6), style: StrokeStyle(lineWidth: 1, dash: [1, 4]))
+        }
+        .frame(height: 12)
+    }
+}
+
+/// Plain line sparkline, single color.
+struct Sparkline: View {
+    let values: [Double]
+    var color: Color = T.dim
+    var body: some View {
+        GeometryReader { g in
+            let mx = values.max() ?? 1, mn = values.min() ?? 0
+            Path { p in
+                for (i, v) in values.enumerated() {
+                    let pt = CGPoint(x: g.size.width * Double(i) / Double(max(values.count - 1, 1)),
+                                     y: g.size.height * (1 - (v - mn) / max(mx - mn, 0.0001)))
+                    i == 0 ? p.move(to: pt) : p.addLine(to: pt)
                 }
-                .fill(LinearGradient(colors: [color.opacity(0.35), color.opacity(0)], startPoint: .top, endPoint: .bottom))
-                Path { p in
-                    guard let f = pts.first else { return }
-                    p.move(to: f); pts.dropFirst().forEach { p.addLine(to: $0) }
-                }
-                .stroke(color, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
             }
+            .stroke(color, style: StrokeStyle(lineWidth: 1, lineJoin: .round))
+        }
+    }
+}
+
+/// Key/value row with a dotted leader.
+struct KV: View {
+    let k: String
+    let v: String
+    var strong = false
+    var body: some View {
+        HStack(alignment: .lastTextBaseline, spacing: 8) {
+            Text(k).font(T.sans(13)).foregroundStyle(strong ? T.text : T.dim)
+            Leader()
+            Text(v).font(T.mono(13, strong ? .medium : .regular)).foregroundStyle(T.text)
         }
     }
 }

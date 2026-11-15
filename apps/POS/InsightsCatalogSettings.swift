@@ -1,148 +1,131 @@
 import SwiftUI
 import Charts
 
-// MARK: - Insights
+// MARK: - Reports
 
 struct InsightsView: View {
     @EnvironmentObject var store: POSStore
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                SectionHeader(title: "Insights", subtitle: "Real-time revenue and settlement performance on Monad.")
-
-                let cumulative = cumulativeRevenue
-                HStack(spacing: 12) {
-                    StatTile(title: "Gross volume", value: "\(MON.format(store.grossVolume, maxFraction: 3)) MON", icon: "banknote.fill",
-                             color: T.violet, spark: cumulative.map(\.1))
-                    StatTile(title: "Payments", value: "\(store.sales.count)", icon: "creditcard.fill", color: T.magenta)
-                    StatTile(title: "Avg. ticket", value: "\(MON.format(store.avgTicket, maxFraction: 3)) MON", icon: "cart.fill", color: T.pink)
-                    StatTile(title: "Tips", value: "\(MON.format(store.tipsTotal, maxFraction: 3)) MON", icon: "heart.fill", color: T.flame)
-                    StatTile(title: "Avg. finality", value: store.avgFinalityMs.map { "\($0) ms" } ?? "—", icon: "bolt.fill", color: T.mint,
-                             spark: store.sales.compactMap(\.finalizedMs).reversed().map(Double.init))
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 36) {
+                    Metric(label: "Gross volume", value: MON.format(store.grossVolume, maxFraction: 3))
+                    Metric(label: "Orders", value: "\(store.sales.count)")
+                    Metric(label: "Avg. ticket", value: MON.format(store.avgTicket, maxFraction: 3))
+                    Metric(label: "Tips", value: MON.format(store.tipsTotal, maxFraction: 3))
+                    Metric(label: "Avg. finality", value: store.avgFinalityMs.map { "\($0)ms" } ?? "—")
+                    Spacer()
                 }
+                .padding(.horizontal, 28).padding(.vertical, 22)
+                Rule()
 
-                HStack(alignment: .top, spacing: 14) {
-                    revenueChart.frame(maxWidth: .infinity)
-                    liveBlocks.frame(width: 320)
+                HStack(alignment: .top, spacing: 0) {
+                    section("Revenue, cumulative") { revenue }
+                    VRule()
+                    section("Blocks") { blocks }.frame(width: 320)
                 }
-
-                HStack(alignment: .top, spacing: 14) {
-                    topProducts.frame(maxWidth: .infinity)
-                    finalityHistogram.frame(maxWidth: .infinity)
+                Rule()
+                HStack(alignment: .top, spacing: 0) {
+                    section("Items by revenue") { items }
+                    VRule()
+                    section("Time to finality") { finality }
                 }
+                Rule()
             }
-            .padding(.horizontal, 28).padding(.top, 40).padding(.bottom, 28)
         }
         .scrollIndicators(.never)
     }
 
-    private var cumulativeRevenue: [(Date, Double)] {
+    private func section<C: View>(_ title: String, @ViewBuilder _ c: () -> C) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label2(title)
+            c()
+        }
+        .padding(.horizontal, 28).padding(.vertical, 22)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    private var cumulative: [(Date, Double)] {
         var acc = 0.0
-        return store.sales.sorted { $0.date < $1.date }.map { s in acc += Double(s.event.amount) / 1e18; return (s.date, acc) }
+        return store.sales.sorted { $0.date < $1.date }.map { acc += Double($0.event.amount) / 1e18; return ($0.date, acc) }
     }
 
-    private var revenueChart: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("Revenue").font(.system(size: 15, weight: .semibold))
-                Spacer()
-                Text("cumulative MON").font(.system(size: 11.5)).foregroundStyle(T.faint)
-            }
-            let data = cumulativeRevenue
-            if data.count < 2 {
-                empty("Make a couple of sales to see the curve")
-            } else {
-                Chart(data, id: \.0) { d in
-                    AreaMark(x: .value("Time", d.0), y: .value("MON", d.1))
-                        .foregroundStyle(LinearGradient(colors: [T.magenta.opacity(0.45), T.violet.opacity(0)], startPoint: .top, endPoint: .bottom))
-                        .interpolationMethod(.monotone)
-                    LineMark(x: .value("Time", d.0), y: .value("MON", d.1))
-                        .foregroundStyle(T.fire).lineStyle(StrokeStyle(lineWidth: 2.5))
-                        .interpolationMethod(.monotone)
-                    PointMark(x: .value("Time", d.0), y: .value("MON", d.1)).foregroundStyle(.white).symbolSize(14)
-                }
-                .chartXAxis { AxisMarks { _ in AxisValueLabel().foregroundStyle(T.faint); AxisGridLine().foregroundStyle(T.stroke) } }
-                .chartYAxis { AxisMarks { _ in AxisValueLabel().foregroundStyle(T.faint); AxisGridLine().foregroundStyle(T.stroke) } }
-                .frame(height: 230)
-            }
+    private var axis: some AxisContent {
+        AxisMarks { _ in
+            AxisValueLabel().font(T.mono(10)).foregroundStyle(T.faint)
+            AxisGridLine().foregroundStyle(T.rule)
         }
-        .panel(radius: 16)
     }
 
-    private var liveBlocks: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Live blocks").font(.system(size: 15, weight: .semibold))
-                Spacer()
-                Circle().fill(store.connected ? T.mint : T.flame).frame(width: 7, height: 7).shadow(color: T.mint, radius: 4)
+    @ViewBuilder private var revenue: some View {
+        let data = cumulative
+        if data.count < 2 { empty } else {
+            Chart(data, id: \.0) { d in
+                LineMark(x: .value("Time", d.0), y: .value("MON", d.1))
+                    .foregroundStyle(T.text).lineStyle(StrokeStyle(lineWidth: 1.25))
+                    .interpolationMethod(.stepEnd)
             }
+            .chartXAxis { axis }.chartYAxis { axis }
+            .frame(height: 220)
+        }
+    }
+
+    private var blocks: some View {
+        VStack(alignment: .leading, spacing: 7) {
             ForEach(store.recentBlocks) { b in
-                HStack {
-                    Text("#\(b.number.formatted())").font(.system(size: 12.5, weight: .medium, design: .monospaced))
-                    Text("\(b.gas.formatted()) gas").font(.system(size: 11, design: .monospaced)).foregroundStyle(T.faint)
-                    Spacer()
-                    StatePill(state: b.state)
+                HStack(spacing: 10) {
+                    Text(b.number.formatted()).font(T.mono(12.5))
+                    Leader()
+                    StateLabel(state: b.state)
                 }
-                .padding(.vertical, 2)
-                .transition(.move(edge: .top).combined(with: .opacity))
             }
+            Sparkline(values: store.blockTimeHistory.isEmpty ? [0, 0] : store.blockTimeHistory).frame(height: 28).padding(.top, 8)
+            Text("block time, last \(store.blockTimeHistory.count) blocks").font(T.sans(11)).foregroundStyle(T.faint)
         }
-        .animation(.snappy, value: store.recentBlocks)
-        .panel(radius: 16)
     }
 
-    private var topProducts: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Top items").font(.system(size: 15, weight: .semibold))
-            let items = Array(store.topProducts.prefix(6))
-            if items.isEmpty { empty("No item sales yet") } else {
-                Chart(items, id: \.name) { p in
-                    BarMark(x: .value("Revenue", p.revenue), y: .value("Item", "\(p.emoji) \(p.name)"))
-                        .foregroundStyle(T.fire).cornerRadius(5)
-                        .annotation(position: .trailing) {
-                            Text("\(p.qty) sold").font(.system(size: 10.5, weight: .semibold)).foregroundStyle(T.dim)
+    @ViewBuilder private var items: some View {
+        let top = Array(store.topProducts.prefix(8))
+        if top.isEmpty { empty } else {
+            let mx = top.map(\.revenue).max() ?? 1
+            VStack(alignment: .leading, spacing: 9) {
+                ForEach(top, id: \.name) { p in
+                    HStack(spacing: 12) {
+                        Text(p.name).font(T.sans(13)).frame(width: 140, alignment: .leading).lineLimit(1)
+                        GeometryReader { g in
+                            Rectangle().fill(T.dim.opacity(0.5)).frame(width: max(2, g.size.width * p.revenue / mx), height: 6)
+                                .frame(maxHeight: .infinity, alignment: .center)
                         }
+                        .frame(height: 14)
+                        Text("\(p.qty)×").font(T.mono(12)).foregroundStyle(T.faint).frame(width: 34, alignment: .trailing)
+                        Text(String(format: "%.3f", p.revenue)).font(T.mono(12.5)).frame(width: 56, alignment: .trailing)
+                    }
                 }
-                .chartXAxis(.hidden)
-                .chartYAxis { AxisMarks { _ in AxisValueLabel().foregroundStyle(T.text) } }
-                .frame(height: CGFloat(items.count) * 34 + 10)
             }
         }
-        .panel(radius: 16)
     }
 
-    private var finalityHistogram: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("Time to finality").font(.system(size: 15, weight: .semibold))
-                Spacer()
-                Text("from first sighting").font(.system(size: 11.5)).foregroundStyle(T.faint)
+    @ViewBuilder private var finality: some View {
+        let ms = store.sales.compactMap(\.finalizedMs).filter { $0 > 0 }
+        if ms.isEmpty { empty } else {
+            let buckets = stride(from: 0, to: 2000, by: 250).map { lo in (label: "\(lo)", count: ms.filter { $0 >= lo && $0 < lo + 250 }.count) }
+            Chart(buckets, id: \.label) { b in
+                BarMark(x: .value("ms", b.label), y: .value("Orders", b.count), width: .ratio(0.55))
+                    .foregroundStyle(T.dim.opacity(0.6))
             }
-            let ms = store.sales.compactMap(\.finalizedMs).filter { $0 > 0 }
-            if ms.isEmpty { empty("Waiting for finalized payments") } else {
-                let buckets = stride(from: 0, to: 2000, by: 250).map { lo in
-                    (label: "\(lo)–\(lo + 250)", count: ms.filter { $0 >= lo && $0 < lo + 250 }.count)
-                }
-                Chart(buckets, id: \.label) { b in
-                    BarMark(x: .value("ms", b.label), y: .value("Payments", b.count))
-                        .foregroundStyle(LinearGradient(colors: [T.mint, T.mint.opacity(0.4)], startPoint: .top, endPoint: .bottom))
-                        .cornerRadius(4)
-                }
-                .chartXAxis { AxisMarks { _ in AxisValueLabel().foregroundStyle(T.faint) } }
-                .chartYAxis { AxisMarks { _ in AxisValueLabel().foregroundStyle(T.faint); AxisGridLine().foregroundStyle(T.stroke) } }
-                .frame(height: 200)
-            }
+            .chartXAxis { axis }.chartYAxis { axis }
+            .frame(height: 200)
+            Text("milliseconds from first sighting to finalized").font(T.sans(11)).foregroundStyle(T.faint)
         }
-        .panel(radius: 16)
     }
 
-    private func empty(_ s: String) -> some View {
-        Text(s).font(.system(size: 13)).foregroundStyle(T.faint).frame(maxWidth: .infinity, minHeight: 160)
+    private var empty: some View {
+        Text("Not enough data yet.").font(T.sans(13)).foregroundStyle(T.faint).frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
     }
 }
 
-// MARK: - Catalog
+// MARK: - Items
 
 struct CatalogView: View {
     @EnvironmentObject var store: POSStore
@@ -150,49 +133,44 @@ struct CatalogView: View {
     @State private var creating = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                HStack(alignment: .bottom) {
-                    SectionHeader(title: "Catalog", subtitle: "\(store.catalog.count) items across \(Set(store.catalog.map(\.category)).count) categories")
-                    Spacer()
-                    Button { creating = true } label: { Label("New item", systemImage: "plus").padding(.horizontal, 16).frame(height: 38) }
-                        .buttonStyle(FireButton())
-                        .keyboardShortcut("n", modifiers: .command)
-                }
-                ForEach(ProductCategory.allCases) { cat in
-                    let items = store.catalog.filter { $0.category == cat }
-                    if !items.isEmpty {
-                        VStack(alignment: .leading, spacing: 0) {
-                            HStack(spacing: 8) {
-                                Image(systemName: cat.icon).foregroundStyle(cat.color)
-                                Text(cat.rawValue).font(.system(size: 14, weight: .semibold))
-                                Text("\(items.count)").font(.system(size: 11, weight: .bold)).foregroundStyle(T.faint)
-                            }
-                            .padding(.bottom, 10)
-                            VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("\(store.catalog.count) items").font(T.mono(12)).foregroundStyle(T.faint)
+                Spacer()
+                Button("New item") { creating = true }.buttonStyle(QuietAction()).keyboardShortcut("n", modifiers: .command)
+            }
+            .padding(.horizontal, 28).frame(height: 44)
+            Rule()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 28) {
+                    ForEach(ProductCategory.allCases) { cat in
+                        let items = store.catalog.filter { $0.category == cat }
+                        if !items.isEmpty {
+                            VStack(alignment: .leading, spacing: 0) {
+                                Label2(cat.rawValue).padding(.bottom, 8)
                                 ForEach(items) { p in
-                                    HStack(spacing: 14) {
-                                        Text(p.emoji).font(.system(size: 22)).frame(width: 40, height: 40)
-                                            .background(cat.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
-                                        Text(p.name).font(.system(size: 13.5, weight: .semibold))
-                                        Spacer()
-                                        Text("\(store.unitsSold(p)) sold").font(.system(size: 12)).foregroundStyle(T.faint).frame(width: 70, alignment: .trailing)
-                                        Text("\(MON.format(p.price, maxFraction: 4)) MON").font(.system(size: 13, weight: .medium, design: .monospaced))
-                                            .frame(width: 110, alignment: .trailing)
-                                        Button { editing = p } label: { Image(systemName: "pencil") }.buttonStyle(GhostButton())
+                                    Button { editing = p } label: {
+                                        HStack(alignment: .lastTextBaseline, spacing: 10) {
+                                            Text(p.name).font(T.sans(14))
+                                            Leader()
+                                            Text("\(store.unitsSold(p)) sold").font(T.mono(12)).foregroundStyle(T.faint)
+                                            Text(MON.format(p.price, maxFraction: 4)).font(T.mono(13)).frame(width: 64, alignment: .trailing)
+                                            Text("edit").font(T.sans(12)).foregroundStyle(T.faint)
+                                        }
+                                        .padding(.vertical, 7)
+                                        .contentShape(Rectangle())
                                     }
-                                    .padding(.horizontal, 14).padding(.vertical, 9)
-                                    if p.id != items.last?.id { Rectangle().fill(T.stroke).frame(height: 1).padding(.leading, 68) }
+                                    .buttonStyle(.plain)
                                 }
                             }
-                            .panel(radius: 14, padding: 4)
                         }
                     }
                 }
+                .padding(.horizontal, 28).padding(.vertical, 24)
+                .frame(maxWidth: 760, alignment: .leading)
             }
-            .padding(.horizontal, 28).padding(.top, 40).padding(.bottom, 28)
+            .scrollIndicators(.never)
         }
-        .scrollIndicators(.never)
         .sheet(item: $editing) { p in ProductEditor(product: p).environmentObject(store) }
         .sheet(isPresented: $creating) { ProductEditor(product: nil).environmentObject(store) }
     }
@@ -203,49 +181,34 @@ struct ProductEditor: View {
     @Environment(\.dismiss) private var dismiss
     let product: Product?
     @State private var name = ""
-    @State private var emoji = "✨"
     @State private var category: ProductCategory = .coffee
     @State private var price = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text(product == nil ? "New item" : "Edit item").font(.system(size: 20, weight: .bold))
-            HStack(spacing: 14) {
-                TextField("", text: $emoji).font(.system(size: 34)).multilineTextAlignment(.center)
-                    .frame(width: 68, height: 68).textFieldStyle(.plain)
-                    .background(category.color.opacity(0.15), in: RoundedRectangle(cornerRadius: 16))
-                VStack(spacing: 10) {
-                    TextField("Name", text: $name).textFieldStyle(.roundedBorder)
-                    TextField("Price (MON)", text: $price).textFieldStyle(.roundedBorder)
-                }
-            }
+        Form {
+            TextField("Name", text: $name)
+            TextField("Price (MON)", text: $price)
             Picker("Category", selection: $category) {
-                ForEach(ProductCategory.allCases) { Label($0.rawValue, systemImage: $0.icon).tag($0) }
+                ForEach(ProductCategory.allCases) { Text($0.rawValue).tag($0) }
             }
-            .pickerStyle(.segmented)
             HStack {
-                if let product {
-                    Button("Delete", role: .destructive) { store.remove(product); dismiss() }
-                }
+                if let product { Button("Delete", role: .destructive) { store.remove(product); dismiss() } }
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button(product == nil ? "Add item" : "Save") { save() }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(name.isEmpty || MON.parse(price) == nil)
+                Button(product == nil ? "Add" : "Save") {
+                    store.upsert(Product(id: product?.id ?? UUID().uuidString, name, product?.emoji ?? "", category, price))
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(name.isEmpty || MON.parse(price) == nil)
             }
+            .padding(.top, 8)
         }
-        .padding(24)
-        .frame(width: 460)
+        .formStyle(.grouped)
+        .frame(width: 420)
         .onAppear {
-            if let p = product { name = p.name; emoji = p.emoji; category = p.category; price = MON.format(p.price, maxFraction: 18) }
+            if let p = product { name = p.name; category = p.category; price = MON.format(p.price, maxFraction: 18) }
         }
-    }
-
-    private func save() {
-        var p = Product(id: product?.id ?? UUID().uuidString, name, String(emoji.prefix(2)), category, price)
-        if p.emoji.isEmpty { p.emoji = "✨" }
-        store.upsert(p)
-        dismiss()
     }
 }
 
@@ -258,34 +221,30 @@ struct POSSettingsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                SectionHeader(title: "Settings")
-                group("Business") {
-                    field("Business name") { TextField("", text: $store.merchantName).textFieldStyle(.roundedBorder).frame(width: 320) }
+            VStack(alignment: .leading, spacing: 30) {
+                block("Business") {
+                    row("Name") { TextField("", text: $store.merchantName).textFieldStyle(.plain).font(T.sans(13)).frame(width: 320) }
                 }
-                group("Payouts") {
-                    field("Payout address") {
-                        HStack {
-                            TextField("0x…", text: $payoutDraft).textFieldStyle(.roundedBorder).font(.system(.body, design: .monospaced)).frame(width: 400)
-                                .onSubmit(save)
-                            Button("Save", action: save).disabled(!isAddress(payoutDraft) || payoutDraft == store.payout)
-                        }
+                block("Payouts") {
+                    row("Address") {
+                        TextField("0x…", text: $payoutDraft).textFieldStyle(.plain).font(T.mono(12.5)).frame(width: 380).onSubmit(save)
+                        Button("Save", action: save).buttonStyle(QuietAction()).disabled(!isAddress(payoutDraft) || payoutDraft == store.payout)
                     }
-                    Text("Payments settle straight to this address — no processor, no payout delay.").font(.system(size: 12)).foregroundStyle(T.faint)
+                    Text("Payments settle directly to this address.").font(T.sans(12)).foregroundStyle(T.faint)
                 }
-                group("Network") {
-                    row("Chain", "\(Chain.name) · \(Chain.chainId)")
-                    row("Settlement contract", Chain.monadPay)
-                    row("Realtime feed", "monadNewHeads + monadLogs over WebSocket")
-                    row("Tap discovery", "Bluetooth LE (RSSI ≥ \(TapLink.tapRSSI) dBm) + Bonjour")
+                block("Network") {
+                    KV(k: "Chain", v: "\(Chain.name) (\(Chain.chainId))")
+                    KV(k: "Contract", v: Chain.monadPay)
+                    KV(k: "Feed", v: "monadNewHeads, monadLogs")
+                    KV(k: "Tap", v: "BLE ≥ \(TapLink.tapRSSI) dBm, Bonjour")
                 }
-                group("Data") {
-                    Button("Clear order history", role: .destructive) { confirmReset = true }
-                    Text("Removes local order history only. On-chain payments are unaffected.").font(.system(size: 12)).foregroundStyle(T.faint)
+                block("Data") {
+                    Button("Clear order history…") { confirmReset = true }.buttonStyle(QuietAction())
+                    Text("Local history only. On-chain payments are unaffected.").font(T.sans(12)).foregroundStyle(T.faint)
                 }
             }
-            .padding(.horizontal, 28).padding(.top, 40).padding(.bottom, 28)
-            .frame(maxWidth: 820, alignment: .leading)
+            .padding(.horizontal, 28).padding(.vertical, 28)
+            .frame(maxWidth: 720, alignment: .leading)
         }
         .onAppear { payoutDraft = store.payout }
         .confirmationDialog("Clear all order history?", isPresented: $confirmReset) {
@@ -299,20 +258,15 @@ struct POSSettingsView: View {
         store.connect()
     }
 
-    private func group<C: View>(_ title: String, @ViewBuilder _ content: () -> C) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title.uppercased()).font(.system(size: 10.5, weight: .bold)).tracking(1.2).foregroundStyle(T.faint)
-            VStack(alignment: .leading, spacing: 12) { content() }.frame(maxWidth: .infinity, alignment: .leading).panel(radius: 14)
-        }
+    private func block<C: View>(_ title: String, @ViewBuilder _ c: () -> C) -> some View {
+        VStack(alignment: .leading, spacing: 12) { Label2(title); c() }
     }
-    private func field<C: View>(_ label: String, @ViewBuilder _ c: () -> C) -> some View {
-        HStack { Text(label).foregroundStyle(T.dim).frame(width: 140, alignment: .leading); c() }.font(.system(size: 13))
-    }
-    private func row(_ k: String, _ v: String) -> some View {
-        HStack(alignment: .top) {
-            Text(k).foregroundStyle(T.dim).frame(width: 160, alignment: .leading)
-            Text(v).font(.system(size: 12.5, design: .monospaced)).textSelection(.enabled)
+    private func row<C: View>(_ label: String, @ViewBuilder _ c: () -> C) -> some View {
+        HStack(spacing: 12) {
+            Text(label).font(T.sans(13)).foregroundStyle(T.dim).frame(width: 80, alignment: .leading)
+            c()
         }
-        .font(.system(size: 13))
+        .padding(.bottom, 6)
+        .overlay(alignment: .bottom) { Rule() }
     }
 }
