@@ -1,8 +1,26 @@
 import SwiftUI
 import CoreImage.CIFilterBuiltins
 
+/// Routes tapnadpos:// links to the register regardless of which window is frontmost.
+final class POSAppDelegate: NSObject, NSApplicationDelegate {
+    weak var store: POSStore?
+    private var pending: [URL] = []
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard let store else { pending += urls; return }
+        Task { @MainActor in urls.forEach { store.handle(url: $0) } }
+    }
+
+    func attach(_ s: POSStore) {
+        store = s
+        let queued = pending; pending = []
+        Task { @MainActor in queued.forEach { s.handle(url: $0) } }
+    }
+}
+
 @main
 struct POSApp: App {
+    @NSApplicationDelegateAdaptor(POSAppDelegate.self) private var delegate
     @StateObject private var store = POSStore()
 
     var body: some Scene {
@@ -12,10 +30,11 @@ struct POSApp: App {
                 .preferredColorScheme(.light)
                 .tint(T.blue)
                 .frame(minWidth: 1100, minHeight: 720)
-                .onOpenURL { store.handle(url: $0) }
+                .onAppear { delegate.attach(store) }
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1320, height: 840)
+        .handlesExternalEvents(matching: [])     // links go to POSAppDelegate, not a new window
 
         WindowGroup("Customer Display", id: "customer") {
             CustomerDisplay()
@@ -25,6 +44,7 @@ struct POSApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 900, height: 640)
+        .handlesExternalEvents(matching: [])
     }
 }
 

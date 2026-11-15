@@ -656,21 +656,25 @@ final class POSStore: ObservableObject {
     func resetSales() { sales = []; tickets = []; saveSales(); saveTickets() }
 }
 
-// MARK: - Refund wallet key (macOS Keychain)
+// MARK: - Refund wallet key
+// Stored in a private app file (0600) rather than the Keychain: dev builds are ad-hoc signed, so the
+// Keychain re-prompts after every rebuild and would block launch. Testnet funds only.
 
 enum POSKeychain {
-    private static let account = "tapnad.pos.refundkey"
+    private static var url: URL {
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("TapnadPOS")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        return dir.appendingPathComponent("refund.key")
+    }
 
     static func refundAccount() -> EthAccount? {
-        let q: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrAccount as String: account,
-                                kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
-        var out: CFTypeRef?
-        if SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess, let d = out as? Data, let a = try? EthAccount(privateKey: d) {
+        if let hex = try? String(contentsOf: url, encoding: .utf8), let d = Data(hex: hex.trimmingCharacters(in: .whitespacesAndNewlines)),
+           d.count == 32, let a = try? EthAccount(privateKey: d) {
             return a
         }
         guard let a = try? EthAccount.generate() else { return nil }
-        SecItemAdd([kSecClass as String: kSecClassGenericPassword, kSecAttrAccount as String: account,
-                    kSecValueData as String: a.privateKey] as CFDictionary, nil)
+        try? a.privateKey.hex.dropFirst(2).write(to: url, atomically: true, encoding: .utf8)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
         return a
     }
 }
