@@ -101,7 +101,7 @@ struct ItemTile: View {
                         ZStack {
                             T.tile
                             if let img = ItemPicture.photo(for: product.name) {
-                                Image(nsImage: img).resizable().scaledToFill().grayscale(1)
+                                Image(nsImage: img).resizable().scaledToFill()
                             } else {
                                 Image(systemName: ItemPicture.symbol(for: product))
                                     .font(.system(size: 40, weight: .light))
