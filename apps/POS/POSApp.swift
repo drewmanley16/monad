@@ -87,12 +87,16 @@ struct TopBar: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Text("Tapnad").font(T.sans(16, .bold)).padding(.trailing, 18)
+            Text("Tapnad").font(T.sans(16, .bold)).fixedSize()
+            Text("TEST MODE").font(T.sans(10, .bold)).tracking(0.6).foregroundStyle(T.dim).fixedSize()
+                .padding(.horizontal, 6).frame(height: 18).overlay(Capsule().strokeBorder(T.rule))
+                .padding(.leading, 6).padding(.trailing, 14)
+                .help("Payments settle in Monad testnet MON at a fixed $100/MON display rate")
             ForEach(NavSection.allCases) { s in
                 Button { section = s } label: {
                     HStack(spacing: 5) {
                     Text(s.rawValue)
-                        .font(T.sans(14, section == s ? .semibold : .regular))
+                        .font(T.sans(14, section == s ? .semibold : .regular)).fixedSize()
                         .foregroundStyle(section == s ? T.text : T.dim)
                     if s == .kitchen, store.tickets.contains(where: { $0.status == .new }) {
                         Text("\(store.tickets.filter { $0.status == .new }.count)").font(T.mono(11, .semibold)).foregroundStyle(.white)
@@ -107,22 +111,16 @@ struct TopBar: View {
                 .keyboardShortcut(s.shortcut, modifiers: .command)
             }
             Spacer()
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 Circle().fill(store.connected ? T.green : T.amber).frame(width: 7, height: 7)
-                Text(store.connected ? "Online" : "Connecting").font(T.sans(13)).foregroundStyle(T.dim)
-                Text("· Block \(store.blockNumber.formatted())").font(T.mono(13)).foregroundStyle(T.dim)
-                    .contentTransition(.numericText(value: Double(store.blockNumber)))
+                Text(store.connected ? "Online" : "Connecting").font(T.sans(13)).foregroundStyle(T.dim).fixedSize()
             }
-            .animation(.default, value: store.blockNumber)
             Button { openWindow(id: "customer") } label: { Image(systemName: "display").frame(width: 30, height: 30) }
                 .buttonStyle(.plain).help("Open customer display")
                 .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(T.rule))
                 .padding(.leading, 12)
             Button { showHow = true } label: { Image(systemName: "questionmark").frame(width: 30, height: 30) }
                 .buttonStyle(.plain).help("How Tapnad works")
-                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(T.rule))
-            Text(store.merchantName).font(T.sans(13, .medium))
-                .padding(.horizontal, 10).frame(height: 30)
                 .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(T.rule))
         }
         .sheet(isPresented: $showHow) { HowItWorks() }

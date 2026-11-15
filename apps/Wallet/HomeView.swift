@@ -27,7 +27,7 @@ struct HomeView: View {
                             Image(systemName: "plus").font(.body.weight(.semibold)).frame(width: 52, height: 52)
                         }
                         .buttonStyle(SecondaryButton())
-                        .accessibilityLabel("Add MON")
+                        .accessibilityLabel("Add money")
                     }
                     .padding(.horizontal, 20)
 
@@ -122,8 +122,7 @@ struct HomeView: View {
                     Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
                 }
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text(String(format: "%.3f", spent)).font(.system(size: 30, weight: .semibold, design: .rounded))
-                    Text("MON").font(.headline).foregroundStyle(.secondary)
+                    Text(spent.formatted(.currency(code: "USD"))).font(.system(size: 30, weight: .semibold, design: .rounded))
                     Spacer()
                     Text("\(recs.count) payments").font(.footnote).foregroundStyle(.secondary)
                 }
@@ -195,7 +194,7 @@ struct ActivityRow: View {
                 .font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer()
-            Text("\((rec.incoming ?? false) ? "+" : "−")\(MON.format(rec.amount)) MON").font(.subheadline.monospacedDigit().weight(.medium))
+            Text("\((rec.incoming ?? false) ? "+" : "−")\(Money.usd(rec.amount))").font(.subheadline.monospacedDigit().weight(.medium))
                 .foregroundStyle((rec.incoming ?? false) ? Color.green : .primary)
         }
         .padding(.horizontal, 14).padding(.vertical, 12)
@@ -221,18 +220,17 @@ struct WalletCard: View {
             Spacer()
             if !compact {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text(balance.map { MON.format($0, maxFraction: 3) } ?? "—")
+                    Text(balance.map { Money.usd($0) } ?? "—")
                         .font(.system(size: 32, weight: .medium))
                         .monospacedDigit()
                         .contentTransition(.numericText())
-                    Text("MON").font(.system(size: 14, weight: .medium)).opacity(0.65)
                 }
                 .padding(.bottom, 8)
             }
             HStack {
-                Text(shortAddress(card.address)).font(.system(size: 12, design: .monospaced)).opacity(0.65)
+                Text("•••• \(card.address.suffix(4))").font(.system(size: 13, weight: .medium)).monospacedDigit().opacity(0.7)
                 Spacer()
-                Text("tapnad").font(.system(size: 12, weight: .semibold)).opacity(0.65)
+                Text("TEST MODE").font(.system(size: 10, weight: .bold)).tracking(0.6).opacity(0.65)
             }
         }
         .foregroundStyle(card.theme.foreground)

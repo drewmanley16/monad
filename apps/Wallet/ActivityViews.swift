@@ -61,7 +61,7 @@ struct ActivityView: View {
                             Text(group.day.formatted(.relative(presentation: .named, unitsStyle: .wide)).capitalizedFirst == "Now"
                                  ? "Today" : dayLabel(group.day))
                             Spacer()
-                            Text("\(String(format: "%.3f", store.spend(group.recs))) MON").monospacedDigit()
+                            Text(store.spend(group.recs).formatted(.currency(code: "USD"))).monospacedDigit()
                         }
                     }
                 }
@@ -115,8 +115,7 @@ struct TransactionDetailView: View {
                     AddressAvatar(seed: rec.merchant ?? rec.merchantName, label: rec.merchantName, size: 64)
                     Text(rec.merchantName).font(.title3.weight(.semibold))
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(((rec.incoming ?? false) ? "+" : "−") + MON.format(rec.amount, maxFraction: 6)).font(.system(size: 44, weight: .semibold, design: .rounded))
-                        Text("MON").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
+                        Text(((rec.incoming ?? false) ? "+" : "−") + Money.usd(rec.amount)).font(.system(size: 44, weight: .semibold, design: .rounded))
                     }
                     HStack(spacing: 6) {
                         Image(systemName: rec.finalizedMs != nil ? "checkmark.seal.fill" : "clock.fill")
@@ -145,9 +144,9 @@ struct TransactionDetailView: View {
                         Text("Payment").font(.subheadline).padding(.horizontal, 16).padding(.vertical, 6)
                     }
                     DashedDivider().padding(.vertical, 8).padding(.horizontal, 16)
-                    row("Subtotal", "\(MON.format(rec.amount, maxFraction: 6)) MON")
-                    row("Network fee", rec.fee > 0 ? "\(MON.format(rec.fee, maxFraction: 5)) MON" : "—")
-                    row("Total", "\(MON.format(rec.amount + rec.fee, maxFraction: 6)) MON", bold: true).padding(.bottom, 8)
+                    row("Subtotal", "\(Money.usd(rec.amount))")
+                    row("Network fee", rec.fee > 0 ? "\(Money.usd(rec.fee))" : "—")
+                    row("Total", "\(Money.usd(rec.amount + rec.fee))", bold: true).padding(.bottom, 8)
                 }
                 .surface(padding: 0)
 

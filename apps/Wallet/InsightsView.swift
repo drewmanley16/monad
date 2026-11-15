@@ -40,7 +40,7 @@ struct InsightsView: View {
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle("Insights")
         .alert("Monthly budget", isPresented: Binding(get: { editingBudget != nil }, set: { if !$0 { editingBudget = nil } })) {
-            TextField("MON per month", text: $budgetText).keyboardType(.decimalPad)
+            TextField("$ per month", text: $budgetText).keyboardType(.decimalPad)
             Button("Save") {
                 if let c = editingBudget { store.budgets[c] = Double(budgetText).flatMap { $0 > 0 ? $0 : nil } }
                 editingBudget = nil
@@ -71,7 +71,7 @@ struct InsightsView: View {
         return VStack(spacing: 16) {
             ZStack {
                 Chart(byCategory, id: \.cat) { item in
-                    SectorMark(angle: .value("MON", item.total), innerRadius: .ratio(0.68), angularInset: 2)
+                    SectorMark(angle: .value("USD", item.total), innerRadius: .ratio(0.68), angularInset: 2)
                         .foregroundStyle(item.cat.color)
                         .cornerRadius(5)
                 }
@@ -82,8 +82,7 @@ struct InsightsView: View {
                 }
                 VStack(spacing: 2) {
                     Text("Spent").font(.caption).foregroundStyle(.secondary)
-                    Text(String(format: "%.3f", total)).font(.system(size: 30, weight: .semibold, design: .rounded))
-                    Text("MON").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    Text(total.formatted(.currency(code: "USD"))).font(.system(size: 30, weight: .semibold, design: .rounded))
                 }
             }
             VStack(spacing: 0) {
@@ -97,7 +96,7 @@ struct InsightsView: View {
                         }
                         Spacer()
                         VStack(alignment: .trailing, spacing: 1) {
-                            Text(String(format: "%.3f MON", item.total)).font(.subheadline.monospacedDigit().weight(.medium))
+                            Text(item.total.formatted(.currency(code: "USD"))).font(.subheadline.monospacedDigit().weight(.medium))
                             Text(total > 0 ? "\(Int(item.total / total * 100))%" : "").font(.caption).foregroundStyle(.secondary)
                         }
                     }
@@ -114,7 +113,7 @@ struct InsightsView: View {
         return VStack(alignment: .leading, spacing: 12) {
             Text("Daily spend").font(.subheadline.weight(.semibold))
             Chart(days, id: \.0) { d in
-                BarMark(x: .value("Day", d.0, unit: .day), y: .value("MON", d.1))
+                BarMark(x: .value("Day", d.0, unit: .day), y: .value("USD", d.1))
                     .foregroundStyle(Color.primary).cornerRadius(4)
             }
             .chartXScale(domain: monthRange)
@@ -148,7 +147,7 @@ struct InsightsView: View {
                         HStack {
                             Label(cat.name, systemImage: cat.icon).font(.subheadline)
                             Spacer()
-                            Text(budget.map { String(format: "%.2f / %.2f", spent, $0) } ?? String(format: "%.3f", spent))
+                            Text(budget.map { "\(spent.formatted(.currency(code: "USD"))) / \($0.formatted(.currency(code: "USD")))" } ?? spent.formatted(.currency(code: "USD")))
                                 .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                         }
                         GeometryReader { g in
@@ -176,7 +175,7 @@ struct InsightsView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Expense report").font(.subheadline.weight(.semibold))
-                    Text(String(format: "Business spend this month: %.3f MON", bizTotal)).font(.caption).foregroundStyle(.secondary)
+                    Text("Business spend this month: \(bizTotal.formatted(.currency(code: "USD")))").font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
             }

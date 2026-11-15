@@ -130,7 +130,7 @@ struct ItemTile: View {
                             Image(systemName: "slider.horizontal.3").font(.system(size: 10)).foregroundStyle(T.faint)
                         }
                     }
-                    Text("\(MON.format(product.price, maxFraction: 4)) MON").font(T.mono(13)).foregroundStyle(T.dim)
+                    Text("\(Money.usd(product.price))").font(T.mono(13)).foregroundStyle(T.dim)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 12).padding(.vertical, 10)
@@ -165,22 +165,22 @@ struct DrinkOptionsSheet: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(product.name).font(T.sans(20, .semibold))
                 Spacer()
-                Text("\(MON.format(product.price + opts.surcharge, maxFraction: 4)) MON").font(T.mono(17, .semibold))
+                Text("\(Money.usd(product.price + opts.surcharge))").font(T.mono(17, .semibold))
                     .contentTransition(.numericText())
             }
             group("Size") {
                 ForEach(DrinkOptions.Size.allCases, id: \.self) { s in
-                    choice(s.rawValue, s == .large ? "+\(MON.format(DrinkOptions.largeUp))" : nil, opts.size == s) { opts.size = s }
+                    choice(s.rawValue, s == .large ? "+\(Money.usd(DrinkOptions.largeUp))" : nil, opts.size == s) { opts.size = s }
                 }
             }
             group("Milk") {
                 ForEach(DrinkOptions.Milk.allCases, id: \.self) { m in
-                    choice(m.rawValue, m == .oat || m == .almond ? "+\(MON.format(DrinkOptions.altMilk))" : nil, opts.milk == m) { opts.milk = m }
+                    choice(m.rawValue, m == .oat || m == .almond ? "+\(Money.usd(DrinkOptions.altMilk))" : nil, opts.milk == m) { opts.milk = m }
                 }
             }
             if product.category == .coffee {
                 group("Extras") {
-                    choice("Extra shot", "+\(MON.format(DrinkOptions.shot))", opts.extraShot) { opts.extraShot.toggle() }
+                    choice("Extra shot", "+\(Money.usd(DrinkOptions.shot))", opts.extraShot) { opts.extraShot.toggle() }
                 }
             }
             HStack {
@@ -231,8 +231,8 @@ struct KeypadView: View {
         VStack(spacing: 24) {
             Spacer()
             VStack(spacing: 4) {
-                Text(entry).font(T.mono(64, .semibold))
-                Text("MON").font(T.sans(15)).foregroundStyle(T.dim)
+                Text("$" + entry).font(T.mono(64, .semibold))
+                Text("Custom amount").font(T.sans(15)).foregroundStyle(T.dim)
             }
             LazyVGrid(columns: Array(repeating: GridItem(.fixed(110), spacing: 10), count: 3), spacing: 10) {
                 ForEach(["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "⌫"], id: \.self) { k in
@@ -249,11 +249,11 @@ struct KeypadView: View {
                 }
             }
             Button {
-                if let w = MON.parse(entry), w > 0 { store.customAmount = (store.customAmount ?? 0) + w; entry = "0" }
+                if let w = Money.parse(entry), w > 0 { store.customAmount = (store.customAmount ?? 0) + w; entry = "0" }
             } label: {
                 Text("Add to sale").frame(width: 350, height: 48)
             }
-            .buttonStyle(PrimaryAction(enabled: (MON.parse(entry) ?? 0) > 0))
+            .buttonStyle(PrimaryAction(enabled: (Money.parse(entry) ?? 0) > 0))
             Spacer()
         }
         .frame(maxWidth: .infinity)
@@ -324,14 +324,13 @@ struct TicketView: View {
                     }
                 }
                 Rule()
-                KV(k: "Subtotal", v: "\(MON.format(store.subtotal, maxFraction: 4)) MON")
-                if store.discountPercent > 0 { KV(k: store.discountPercent == 100 ? "Comped" : "Discount \(store.discountPercent)%", v: "−\(MON.format(store.discount, maxFraction: 4)) MON") }
-                if store.taxPercent > 0 { KV(k: "Tax \(store.taxPercent.formatted())%", v: "\(MON.format(store.tax, maxFraction: 4)) MON") }
-                if store.tipPercent > 0 { KV(k: "Tip", v: "\(MON.format(store.tip, maxFraction: 4)) MON") }
-                KV(k: "Total", v: "\(MON.format(store.total, maxFraction: 4)) MON", strong: true)
-                if let usd = store.usd(store.total), store.total > 0 { KV(k: "", v: "≈ \(usd)") }
+                KV(k: "Subtotal", v: "\(Money.usd(store.subtotal))")
+                if store.discountPercent > 0 { KV(k: store.discountPercent == 100 ? "Comped" : "Discount \(store.discountPercent)%", v: "−\(Money.usd(store.discount))") }
+                if store.taxPercent > 0 { KV(k: "Tax \(store.taxPercent.formatted())%", v: "\(Money.usd(store.tax))") }
+                if store.tipPercent > 0 { KV(k: "Tip", v: "\(Money.usd(store.tip))") }
+                KV(k: "Total", v: "\(Money.usd(store.total))", strong: true)
                 if store.splitCount > 1 && store.total > 0 {
-                    KV(k: "Each of \(store.splitCount)", v: "≈ \(MON.format(store.total / Wei(store.splitCount), maxFraction: 4)) MON")
+                    KV(k: "Each of \(store.splitCount)", v: "≈ \(Money.usd(store.total / Wei(store.splitCount)))")
                 }
 
                 Button { store.startCharge() } label: {
@@ -347,7 +346,7 @@ struct TicketView: View {
 
     private var chargeLabel: String {
         guard store.total > 0 else { return "Charge" }
-        let base = "Charge \(MON.format(store.total, maxFraction: 4)) MON"
+        let base = "Charge \(Money.usd(store.total))"
         return store.splitCount > 1 ? base + " · \(store.splitCount) ways" : base
     }
 
@@ -374,7 +373,7 @@ struct TicketView: View {
                 }
                 .buttonStyle(.plain).font(.system(size: 11, weight: .semibold)).foregroundStyle(T.dim)
                 .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(T.rule))
-                Text(MON.format(amount, maxFraction: 4)).font(T.mono(14)).frame(width: 64, alignment: .trailing)
+                Text(Money.usd(amount)).font(T.mono(14)).frame(width: 64, alignment: .trailing)
             }
             .padding(.horizontal, 20).padding(.vertical, 12)
             Rule().padding(.leading, 20)
@@ -416,9 +415,8 @@ struct ChargeScreen: View {
             if isSplit { splitProgress.padding(.bottom, 28) }
             VStack(spacing: 6) {
                 Text(isSplit ? "Payment \(store.currentPartIndex + 1) of \(store.parts.count)" : "Total").font(T.sans(16)).foregroundStyle(T.dim)
-                Text("\(MON.format(req.amount, maxFraction: 4)) MON").font(T.mono(72, .semibold))
+                Text("\(Money.usd(req.amount))").font(T.mono(72, .semibold))
                     .contentTransition(.numericText())
-                if let usd = store.usd(req.amount) { Text("≈ \(usd)").font(T.mono(16)).foregroundStyle(T.dim) }
                 if let note = store.rewardNotice {
                     Label(note, systemImage: "gift").font(T.sans(14, .medium)).padding(.top, 8)
                 } else if let who = store.identifiedPayer {
@@ -465,7 +463,7 @@ struct ChargeScreen: View {
                         .foregroundStyle(paid || current ? T.text : T.faint)
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Part \(i + 1)").font(T.sans(12, .semibold))
-                        Text(paid ? shortAddress(store.paidParts[i].payer) : "\(MON.format(p.amount, maxFraction: 4)) MON")
+                        Text(paid ? shortAddress(store.paidParts[i].payer) : "\(Money.usd(p.amount))")
                             .font(T.mono(11)).foregroundStyle(T.dim)
                     }
                 }
@@ -486,7 +484,7 @@ struct ChargeScreen: View {
             }
             .transition(.scale)
             Text("Payment approved").font(T.sans(28, .semibold)).padding(.top, 22)
-            Text("Order #\(store.lastOrderNumber ?? 0) · \(MON.format(store.paidParts.reduce(Wei(0)) { $0 + $1.amount }, maxFraction: 4)) MON"
+            Text("Order #\(store.lastOrderNumber ?? 0) · \(Money.usd(store.paidParts.reduce(Wei(0)) { $0 + $1.amount }))"
                  + (isSplit ? " · \(store.parts.count) payments" : " · from \(shortAddress(ev.payer))"))
                 .font(T.mono(15)).foregroundStyle(T.dim).padding(.top, 6)
 

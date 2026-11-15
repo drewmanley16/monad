@@ -10,7 +10,7 @@ final class WalletStore: ObservableObject {
 
     // Ledger + budgets
     @Published var history: [PaymentRecord] = []
-    @Published var budgets: [ExpenseCategory: Double] = [:] { didSet { save() } }   // MON per month
+    @Published var budgets: [ExpenseCategory: Double] = [:] { didSet { save() } }   // dollars per month
 
     // Active payment
     @Published var request: PaymentRequest?
@@ -145,19 +145,19 @@ final class WalletStore: ObservableObject {
     }
 
     func spend(_ recs: [PaymentRecord]) -> Double {
-        recs.reduce(0) { $0 + (($1.incoming ?? false) ? -$1.amount.monDouble : $1.amount.monDouble) }
+        recs.reduce(0) { $0 + (($1.incoming ?? false) ? -Money.dollars($1.amount) : Money.dollars($1.amount)) }
     }
 
     /// CSV for expense reports.
     func exportCSV(_ recs: [PaymentRecord]) -> URL {
-        var csv = "Date,Merchant,Items,Category,Card,Type,Amount (MON),Network fee (MON),Note,Transaction\n"
+        var csv = "Date,Merchant,Items,Category,Card,Type,Amount (USD),Network fee (USD),Note,Transaction\n"
         let f = ISO8601DateFormatter()
         func esc(_ s: String) -> String { "\"" + s.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }
         for r in recs {
             let card = card(for: r)
             csv += [f.string(from: r.date), esc(r.merchantName), esc(r.memo), esc(r.resolvedCategory.name),
                     esc(card?.name ?? "—"), (card?.isBusiness ?? false) ? "Business" : "Personal",
-                    MON.format(r.amount, maxFraction: 18), MON.format(r.fee, maxFraction: 18),
+                    Money.plain(r.amount), Money.plain(r.fee),
                     esc(r.note ?? ""), r.txHash].joined(separator: ",") + "\n"
         }
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("Tapnad-Expenses-\(Date.now.formatted(.iso8601.year().month())).csv")
@@ -203,7 +203,7 @@ final class WalletStore: ObservableObject {
         guard let req = request, let card = selectedCard, let acct = accounts[card.id] else { return }
         phase = .authorizing
         let amount = payAmount
-        guard await Biometrics.authenticate("Pay \(MON.format(amount)) MON to \(req.merchantName)") else {
+        guard await Biometrics.authenticate("Pay \(Money.usd(amount)) to \(req.merchantName)") else {
             phase = .confirm; return
         }
         withAnimation { phase = .sending }

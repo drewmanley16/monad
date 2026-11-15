@@ -106,7 +106,7 @@ struct CustomerDisplay: View {
                                     if let d = l.detail { Text(d).font(T.sans(15)).foregroundStyle(T.dim) }
                                 }
                                 Spacer()
-                                Text(MON.format(l.total, maxFraction: 4)).font(T.mono(22))
+                                Text(Money.usd(l.total)).font(T.mono(22))
                             }
                             .transition(.move(edge: .leading).combined(with: .opacity))
                         }
@@ -117,8 +117,7 @@ struct CustomerDisplay: View {
                     Text("Total").font(T.sans(26, .semibold))
                     Spacer()
                     VStack(alignment: .trailing) {
-                        Text("\(MON.format(store.total, maxFraction: 4)) MON").font(T.mono(36, .semibold)).contentTransition(.numericText())
-                        if let usd = store.usd(store.total) { Text("≈ \(usd)").font(T.mono(16)).foregroundStyle(T.dim) }
+                        Text("\(Money.usd(store.total))").font(T.mono(36, .semibold)).contentTransition(.numericText())
                     }
                 }
             }
@@ -130,7 +129,7 @@ struct CustomerDisplay: View {
         VStack(spacing: 22) {
             Text(store.parts.count > 1 ? "Payment \(store.currentPartIndex + 1) of \(store.parts.count)" : "Total due")
                 .font(T.sans(20)).foregroundStyle(T.dim)
-            Text("\(MON.format(req.amount, maxFraction: 4)) MON").font(T.mono(68, .semibold))
+            Text("\(Money.usd(req.amount))").font(T.mono(68, .semibold))
             if let note = store.rewardNotice { Label(note, systemImage: "gift").font(T.sans(18, .medium)) }
             ContactlessRings(color: T.text, size: 200, icon: "wave.3.right")
             Text("Hold your phone near the register").font(T.sans(22, .semibold))
@@ -187,12 +186,11 @@ struct CloseOutSheet: View {
                 Button("Done") { dismiss() }.buttonStyle(QuietAction()).keyboardShortcut(.defaultAction)
             }
             VStack(spacing: 9) {
-                KV(k: "Gross sales", v: "\(MON.format(gross, maxFraction: 4)) MON")
-                KV(k: "Refunds", v: "−\(MON.format(refunds, maxFraction: 4)) MON")
-                KV(k: "Net sales", v: "\(MON.format(gross - refunds, maxFraction: 4)) MON", strong: true)
-                if let usd = store.usd(gross - refunds) { KV(k: "", v: "≈ \(usd)") }
+                KV(k: "Gross sales", v: "\(Money.usd(gross))")
+                KV(k: "Refunds", v: "−\(Money.usd(refunds))")
+                KV(k: "Net sales", v: "\(Money.usd(gross - refunds))", strong: true)
                 Rule()
-                KV(k: "Tips", v: "\(MON.format(tips, maxFraction: 4)) MON")
+                KV(k: "Tips", v: "\(Money.usd(tips))")
                 KV(k: "Orders", v: "\(orders)")
                 KV(k: "Payments", v: "\(today.count)")
                 KV(k: "Items sold", v: "\(items.reduce(0) { $0 + $1.qty })")
@@ -209,7 +207,7 @@ struct CloseOutSheet: View {
             HStack {
                 Spacer()
                 Button("Copy summary") {
-                    let text = "\(store.merchantName) close-out \(Date.now.formatted(date: .abbreviated, time: .omitted))\nNet \(MON.format(gross - refunds, maxFraction: 4)) MON · \(orders) orders · tips \(MON.format(tips, maxFraction: 4)) MON"
+                    let text = "\(store.merchantName) close-out \(Date.now.formatted(date: .abbreviated, time: .omitted))\nNet \(Money.usd(gross - refunds)) · \(orders) orders · tips \(Money.usd(tips))"
                     NSPasteboard.general.clearContents(); NSPasteboard.general.setString(text, forType: .string)
                 }
                 .buttonStyle(QuietAction())

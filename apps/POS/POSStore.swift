@@ -163,7 +163,6 @@ final class POSStore: ObservableObject {
     @AppStorage("pos.name") var merchantName = "Tapnad Café" { didSet { beacon.name = merchantName } }
     @AppStorage("pos.payout") var payout = "0x2bbf6125b26B771098836f981F0588A943641b6B"
     @AppStorage("pos.taxPercent") var taxPercent: Double = 0
-    @AppStorage("pos.usdRate") var usdRate: Double = 0          // display only; 0 hides USD
 
     // Catalog
     @Published var catalog: [Product] = [] { didSet { saveCatalog() } }
@@ -236,10 +235,7 @@ final class POSStore: ObservableObject {
         Task { await refreshRefundBalance() }
     }
 
-    func usd(_ w: Wei) -> String? {
-        guard usdRate > 0 else { return nil }
-        return (Double(w) / 1e18 * usdRate).formatted(.currency(code: "USD"))
-    }
+
 
     // MARK: Cart
 
@@ -605,10 +601,10 @@ final class POSStore: ObservableObject {
     func exportCSV() -> String {
         let f = ISO8601DateFormatter()
         func esc(_ s: String) -> String { "\"" + s.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }
-        var out = "Date,Order,Part,Items,Customer,Amount (MON),Tip (MON),Status,Finality (ms),Block,Transaction\n"
+        var out = "Date,Order,Part,Items,Customer,Amount (USD),Tip (USD),Amount (testnet MON),Status,Finality (ms),Block,Transaction\n"
         for s in sales {
             out += [f.string(from: s.date), s.orderNumber.map(String.init) ?? "", s.splitPart ?? "", esc(s.event.memo), s.event.payer,
-                    MON.format(s.event.amount, maxFraction: 18), MON.format(s.tip, maxFraction: 18), s.latestState.rawValue,
+                    Money.plain(s.event.amount), Money.plain(s.tip), MON.format(s.event.amount, maxFraction: 18), s.latestState.rawValue,
                     s.finalizedMs.map(String.init) ?? "", String(s.event.blockNumber), s.event.txHash].joined(separator: ",") + "\n"
         }
         return out

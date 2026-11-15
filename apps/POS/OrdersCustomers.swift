@@ -95,7 +95,7 @@ struct OrderRow: View {
             Text(shortAddress(sale.event.payer)).font(T.mono(12.5)).foregroundStyle(T.dim)
                 .frame(width: 120, alignment: .leading)
             StateLabel(state: sale.latestState).frame(width: 100, alignment: .leading)
-            Text(MON.format(sale.event.amount, maxFraction: 4)).font(T.mono(13)).frame(width: 90, alignment: .trailing)
+            Text(Money.usd(sale.event.amount)).font(T.mono(13)).frame(width: 90, alignment: .trailing)
         }
         .padding(.horizontal, 28).frame(height: 40)
         .background(selected ? Color.white.opacity(0.05) : hover ? T.hover : .clear)
@@ -117,8 +117,7 @@ struct ReceiptInspector: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Label2("Order")
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(MON.format(sale.event.amount, maxFraction: 4)).font(T.mono(34, .light))
-                        Text("MON").font(T.mono(13)).foregroundStyle(T.dim)
+                        Text(Money.usd(sale.event.amount)).font(T.mono(34, .light))
                     }
                     Text(sale.date.formatted(date: .abbreviated, time: .standard)).font(T.mono(12)).foregroundStyle(T.faint)
                 }
@@ -127,15 +126,15 @@ struct ReceiptInspector: View {
                     Label2("Items")
                     if let lines = sale.lines, !lines.isEmpty {
                         ForEach(lines, id: \.self) { l in
-                            KV(k: l.qty > 1 ? "\(l.qty)× \(l.name)" : l.name, v: MON.format(l.unit * Wei(l.qty), maxFraction: 4))
+                            KV(k: l.qty > 1 ? "\(l.qty)× \(l.name)" : l.name, v: Money.usd(l.unit * Wei(l.qty)))
                         }
                     } else {
                         Text(sale.event.memo.isEmpty ? "Payment" : sale.event.memo).font(T.sans(13))
                     }
-                    if sale.tip > 0 { KV(k: "Tip", v: MON.format(sale.tip, maxFraction: 4)) }
+                    if sale.tip > 0 { KV(k: "Tip", v: Money.usd(sale.tip)) }
                     if let r = sale.rewardApplied { KV(k: "Reward", v: r) }
                     Rule()
-                    KV(k: "Total", v: MON.format(sale.event.amount, maxFraction: 4), strong: true)
+                    KV(k: "Total", v: Money.usd(sale.event.amount), strong: true)
                 }
 
                 VStack(alignment: .leading, spacing: 9) {
@@ -159,13 +158,13 @@ struct ReceiptInspector: View {
                             Link("View ↗", destination: URL(string: Chain.explorerTx + tx)!).font(T.sans(12.5))
                         }
                     } else {
-                        Button(store.refunding == sale.id ? "Refunding…" : "Refund \(MON.format(sale.event.amount, maxFraction: 4)) MON") { confirm = true }
+                        Button(store.refunding == sale.id ? "Refunding…" : "Refund \(Money.usd(sale.event.amount))") { confirm = true }
                             .buttonStyle(QuietAction())
                             .disabled(store.refunding != nil)
                         if let error { Text(error).font(T.sans(12)).foregroundStyle(T.red) }
                     }
                 }
-                .confirmationDialog("Refund \(MON.format(sale.event.amount, maxFraction: 4)) MON to \(shortAddress(sale.event.payer))?", isPresented: $confirm) {
+                .confirmationDialog("Refund \(Money.usd(sale.event.amount)) to \(shortAddress(sale.event.payer))?", isPresented: $confirm) {
                     Button("Refund") { Task { error = await store.refund(sale) } }
                 }
 
@@ -202,7 +201,7 @@ struct CustomersView: View {
             HStack(spacing: 36) {
                 Metric(label: "Customers", value: "\(customers.count)")
                 Metric(label: "Returning", value: "\(customers.filter { $0.visits > 1 }.count)")
-                Metric(label: "Avg. spend", value: customers.isEmpty ? "—" : MON.format(store.grossVolume / Wei(customers.count), maxFraction: 3))
+                Metric(label: "Avg. spend", value: customers.isEmpty ? "—" : Money.usd(store.grossVolume / Wei(customers.count)))
                 Spacer()
             }
             .padding(.horizontal, 28).padding(.vertical, 22)
@@ -243,7 +242,7 @@ struct CustomersView: View {
                                 .frame(width: 170, alignment: .leading).padding(.leading, 28)
                             Text(c.lastSeen.formatted(.relative(presentation: .named))).font(T.sans(12.5)).foregroundStyle(T.dim)
                                 .frame(width: 110, alignment: .leading)
-                            Text(MON.format(c.total, maxFraction: 3)).font(T.mono(13)).frame(width: 90, alignment: .trailing)
+                            Text(Money.usd(c.total)).font(T.mono(13)).frame(width: 90, alignment: .trailing)
                         }
                         .padding(.horizontal, 28).frame(height: 40)
                         Rule().padding(.leading, 28)

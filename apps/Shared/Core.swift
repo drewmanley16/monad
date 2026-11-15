@@ -347,3 +347,27 @@ final class MonadStream: NSObject {
         subs[id]?.handler(res)
     }
 }
+
+// MARK: - Money (dollar display; settles in testnet MON underneath)
+
+enum Money {
+    /// Fixed display rate for testnet MON, which has no market price.
+    static let usdPerMON: Double = 100
+
+    static func usd(_ w: Wei) -> String {
+        let dollars = Double(w) / 1e18 * usdPerMON
+        return dollars.formatted(.currency(code: "USD").precision(.fractionLength(2)))
+    }
+
+    static func dollars(_ w: Wei) -> Double { Double(w) / 1e18 * usdPerMON }
+
+    /// "$3.50" / "3.5" → wei
+    static func parse(_ s: String) -> Wei? {
+        let clean = s.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
+        guard let cents = MON.parse(clean) else { return nil }        // parse as 18-decimal fixed point
+        return cents / Wei(usdPerMON)                                  // dollars → MON
+    }
+
+    /// Dollar string for a wei amount suitable for a text field ("3.50").
+    static func plain(_ w: Wei) -> String { String(format: "%.2f", dollars(w)) }
+}

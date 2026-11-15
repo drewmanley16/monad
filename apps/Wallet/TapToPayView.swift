@@ -97,8 +97,7 @@ struct TapToPayView: View {
                 }
 
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(MON.format(store.payAmount, maxFraction: 6)).font(.system(size: 56, weight: .semibold, design: .rounded))
-                    Text("MON").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
+                    Text(Money.usd(store.payAmount)).font(.system(size: 56, weight: .semibold, design: .rounded))
                 }
                 .minimumScaleFactor(0.5).lineLimit(1)
 
@@ -122,7 +121,7 @@ struct TapToPayView: View {
                         .font(.footnote).foregroundStyle(.red).multilineTextAlignment(.leading)
                 }
                 if store.insufficient {
-                    Label("Not enough MON. Add funds to continue.", systemImage: "exclamationmark.circle")
+                    Label("Not enough balance. Add money to continue.", systemImage: "exclamationmark.circle")
                         .font(.footnote).foregroundStyle(.orange)
                 }
 
@@ -151,14 +150,14 @@ struct TapToPayView: View {
                     Button {
                         withAnimation(.snappy) { store.selectedCardId = c.id }; Haptics.soft()
                     } label: {
-                        Text("\(c.name) · \(store.balances[c.id].map { MON.format($0, maxFraction: 2) } ?? "—") MON")
+                        Text("\(c.name) · \(store.balances[c.id].map { Money.usd($0) } ?? "—") MON")
                     }
                 }
             } label: {
                 HStack(spacing: 6) {
                     if let c = store.selectedCard {
                         RoundedRectangle(cornerRadius: 3).fill(c.theme.gradient).frame(width: 22, height: 14)
-                        Text("\(c.name) · \(store.balance.map { MON.format($0, maxFraction: 2) } ?? "—") MON").foregroundStyle(.primary)
+                        Text("\(c.name) · \(store.balance.map { Money.usd($0) } ?? "—") MON").foregroundStyle(.primary)
                     }
                     Image(systemName: "chevron.up.chevron.down").font(.caption2).foregroundStyle(.secondary)
                 }
@@ -195,7 +194,7 @@ struct TapToPayView: View {
             SuccessCheck(size: 88)
             if let req = store.request {
                 VStack(spacing: 4) {
-                    Text("Paid \(MON.format(store.payAmount, maxFraction: 6)) MON").font(.title2.weight(.semibold))
+                    Text("Paid \(Money.usd(store.payAmount))").font(.title2.weight(.semibold))
                     Text(req.merchantName).font(.subheadline).foregroundStyle(.secondary)
                 }
             }

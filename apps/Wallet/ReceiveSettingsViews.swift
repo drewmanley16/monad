@@ -33,7 +33,7 @@ struct ReceiveView: View {
                 Spacer()
             }
             .padding(.top, 12)
-            .navigationTitle("Add MON").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Add money").navigationBarTitleDisplayMode(.inline)
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
         }
     }
@@ -58,7 +58,7 @@ struct SettingsView: View {
             Form {
                 Section("Overview") {
                     LabeledContent("Network", value: Chain.name)
-                    LabeledContent("Total balance", value: "\(MON.format(store.totalBalance, maxFraction: 3)) MON")
+                    LabeledContent("Total balance", value: "\(Money.usd(store.totalBalance))")
                     LabeledContent("Tap mode", value: ReaderScanner.isSimulator ? "Local network" : "Bluetooth proximity")
                 }
                 ForEach(store.cards) { card in

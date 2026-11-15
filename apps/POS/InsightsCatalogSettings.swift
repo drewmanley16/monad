@@ -11,10 +11,10 @@ struct InsightsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 36) {
-                    Metric(label: "Gross volume", value: MON.format(store.grossVolume, maxFraction: 3))
+                    Metric(label: "Gross volume", value: Money.usd(store.grossVolume))
                     Metric(label: "Orders", value: "\(store.sales.count)")
-                    Metric(label: "Avg. ticket", value: MON.format(store.avgTicket, maxFraction: 3))
-                    Metric(label: "Tips", value: MON.format(store.tipsTotal, maxFraction: 3))
+                    Metric(label: "Avg. ticket", value: Money.usd(store.avgTicket))
+                    Metric(label: "Tips", value: Money.usd(store.tipsTotal))
                     Metric(label: "Avg. finality", value: store.avgFinalityMs.map { "\($0)ms" } ?? "—")
                 }
                 .padding(.horizontal, 28).padding(.top, 22)
@@ -54,7 +54,7 @@ struct InsightsView: View {
 
     private var cumulative: [(Date, Double)] {
         var acc = 0.0
-        return store.sales.sorted { $0.date < $1.date }.map { acc += Double($0.event.amount) / 1e18; return ($0.date, acc) }
+        return store.sales.sorted { $0.date < $1.date }.map { acc += Money.dollars($0.event.amount); return ($0.date, acc) }
     }
 
     private var axis: some AxisContent {
@@ -68,7 +68,7 @@ struct InsightsView: View {
         let data = cumulative
         if data.count < 2 { empty } else {
             Chart(data, id: \.0) { d in
-                LineMark(x: .value("Time", d.0), y: .value("MON", d.1))
+                LineMark(x: .value("Time", d.0), y: .value("USD", d.1))
                     .foregroundStyle(T.text).lineStyle(StrokeStyle(lineWidth: 1.25))
                     .interpolationMethod(.stepEnd)
             }
@@ -105,7 +105,7 @@ struct InsightsView: View {
                         }
                         .frame(height: 14)
                         Text("\(p.qty)×").font(T.mono(12)).foregroundStyle(T.faint).frame(width: 34, alignment: .trailing)
-                        Text(String(format: "%.3f", p.revenue)).font(T.mono(12.5)).frame(width: 56, alignment: .trailing)
+                        Text(String(format: "$%.2f", p.revenue * Money.usdPerMON)).font(T.mono(12.5)).frame(width: 56, alignment: .trailing)
                     }
                 }
             }
@@ -161,7 +161,7 @@ struct CatalogView: View {
                                             Leader()
                                             Text(p.stock.map { $0 == 0 ? "sold out" : "\($0) in stock" } ?? "").font(T.mono(12)).foregroundStyle(T.faint)
                                             Text("\(store.unitsSold(p)) sold").font(T.mono(12)).foregroundStyle(T.faint)
-                                            Text(MON.format(p.price, maxFraction: 4)).font(T.mono(13)).frame(width: 64, alignment: .trailing)
+                                            Text(Money.usd(p.price)).font(T.mono(13)).frame(width: 64, alignment: .trailing)
                                             Text("edit").font(T.sans(12)).foregroundStyle(T.faint)
                                         }
                                         .padding(.vertical, 7)
@@ -195,7 +195,7 @@ struct ProductEditor: View {
     var body: some View {
         Form {
             TextField("Name", text: $name)
-            TextField("Price (MON)", text: $price)
+            TextField("Price ($)", text: $price)
             TextField("Stock (blank = don't track)", text: $stock)
             Picker("Category", selection: $category) {
                 ForEach(ProductCategory.allCases) { Text($0.rawValue).tag($0) }
@@ -205,18 +205,18 @@ struct ProductEditor: View {
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                 Button(product == nil ? "Add" : "Save") {
-                    store.upsert(Product(id: product?.id ?? UUID().uuidString, name, product?.emoji ?? "", category, price, stock: Int(stock)))
+                    store.upsert(Product(id: product?.id ?? UUID().uuidString, name, product?.emoji ?? "", category, MON.format(Money.parse(price) ?? 0, maxFraction: 18), stock: Int(stock)))
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(name.isEmpty || MON.parse(price) == nil)
+                .disabled(name.isEmpty || Money.parse(price) == nil)
             }
             .padding(.top, 8)
         }
         .formStyle(.grouped)
         .frame(width: 420)
         .onAppear {
-            if let p = product { name = p.name; category = p.category; price = MON.format(p.price, maxFraction: 18); stock = p.stock.map(String.init) ?? "" }
+            if let p = product { name = p.name; category = p.category; price = Money.plain(p.price); stock = p.stock.map(String.init) ?? "" }
         }
     }
 }
@@ -240,15 +240,9 @@ struct POSSettingsView: View {
                     }
                     Text("Added on top of the discounted subtotal at checkout.").font(T.sans(12)).foregroundStyle(T.faint)
                 }
-                block("Prices") {
-                    row("USD / MON") {
-                        TextField("0", value: $store.usdRate, format: .number).textFieldStyle(.plain).font(T.mono(13)).frame(width: 80)
-                    }
-                    Text("Display-only conversion. Leave at 0 to hide USD.").font(T.sans(12)).foregroundStyle(T.faint)
-                }
                 block("Refund wallet") {
                     KV(k: "Address", v: store.refundAccount?.address ?? "—")
-                    KV(k: "Balance", v: store.refundBalance.map { "\(MON.format($0, maxFraction: 4)) MON" } ?? "—")
+                    KV(k: "Balance", v: store.refundBalance.map { "\(Money.usd($0))" } ?? "—")
                     HStack {
                         Button("Copy address") {
                             NSPasteboard.general.clearContents(); NSPasteboard.general.setString(store.refundAccount?.address ?? "", forType: .string)
