@@ -20,6 +20,22 @@ struct RegisterView: View {
             VRule()
             TicketView().frame(width: 380).background(T.surface)
         }
+        .overlay(alignment: .top) {
+            if let msg = store.setupBanner {
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.circle.fill")
+                    Text(msg).font(T.sans(14, .medium))
+                    Button { store.setupBanner = nil } label: { Image(systemName: "xmark").font(.system(size: 11, weight: .semibold)) }
+                        .buttonStyle(.plain)
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16).frame(height: 40)
+                .background(T.text, in: Capsule())
+                .padding(.top, 12)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.snappy, value: store.setupBanner)
         .sheet(item: $store.optionsFor) { p in DrinkOptionsSheet(product: p).environmentObject(store) }
     }
 

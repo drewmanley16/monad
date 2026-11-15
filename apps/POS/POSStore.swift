@@ -52,6 +52,20 @@ struct Product: Identifiable, Codable, Hashable {
         .init("Nad Tee", "", .merch, "0.25", stock: 20),
         .init("Purple Cap", "", .merch, "0.18", stock: 15),
     ]
+
+    static let restaurant: [Product] = [
+        .init("Burger", "", .food, "0.14"), .init("Fries", "", .food, "0.05"), .init("Caesar Salad", "", .food, "0.12"),
+        .init("Margherita Pizza", "", .food, "0.16"), .init("Tacos", "", .food, "0.11"),
+        .init("Lemonade", "", .drinks, "0.04"), .init("Iced Tea", "", .tea, "0.035"), .init("Sparkling Water", "", .drinks, "0.02"),
+        .init("Espresso", "", .coffee, "0.03"), .init("Brownie", "", .food, "0.06"),
+    ]
+
+    static let retail: [Product] = [
+        .init("T-Shirt", "", .merch, "0.25", stock: 30), .init("Hoodie", "", .merch, "0.55", stock: 15),
+        .init("Cap", "", .merch, "0.20", stock: 20), .init("Tote Bag", "", .merch, "0.15", stock: 25),
+        .init("Stickers", "", .merch, "0.04"), .init("Poster", "", .merch, "0.12", stock: 40),
+        .init("Water", "", .drinks, "0.02"),
+    ]
 }
 
 /// Drink modifiers.
@@ -336,6 +350,7 @@ final class POSStore: ObservableObject {
     /// Rehearsal / automation: tapnadpos://charge?items=Espresso,Croissant&split=2
     func handle(url: URL) {
         if url.scheme == "tapnadpos", url.host == "newsale" { newSale(); return }
+        if url.scheme == "tapnadpos", url.host == "setup" { setup(from: url); return }
         guard url.scheme == "tapnadpos", url.host == "charge",
               let q = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems else { return }
         guard charge == .idle else { return }
@@ -348,6 +363,23 @@ final class POSStore: ObservableObject {
         splitCount = Int(q.first { $0.name == "split" }?.value ?? "") ?? 1
         tipPercent = Int(q.first { $0.name == "tip" }?.value ?? "") ?? 0
         startCharge()
+    }
+
+    /// Onboarding from the website: tapnadpos://setup?name=…&payout=0x…&template=cafe|restaurant|retail
+    @Published var setupBanner: String?
+    func setup(from url: URL) {
+        let q = Dictionary((URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []).map { ($0.name, $0.value ?? "") },
+                           uniquingKeysWith: { a, _ in a })
+        if let n = q["name"], !n.isEmpty { merchantName = n }
+        if let p = q["payout"], isAddress(p) { payout = p; connect() }
+        switch q["template"] {
+        case "restaurant": catalog = Product.restaurant
+        case "retail": catalog = Product.retail
+        case "cafe": catalog = Product.defaults
+        default: break
+        }
+        if charge == .idle { clear() }
+        setupBanner = "Welcome, \(merchantName). Your register is ready."
     }
 
     // MARK: Identify + rewards
