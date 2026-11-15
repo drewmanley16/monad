@@ -77,7 +77,7 @@ struct CustomerDisplay: View {
 
     var body: some View {
         ZStack {
-            T.surface.ignoresSafeArea()
+            GlassBackdrop()
             switch store.charge {
             case .idle: building
             case .awaiting(let req): pay(req)

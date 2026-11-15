@@ -71,10 +71,9 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-            T.bg.ignoresSafeArea()
-            VStack(spacing: 0) {
+            GlassBackdrop()
+            VStack(spacing: 10) {
                 TopBar(section: $section)
-                Rule()
                 Group {
                     switch section {
                     case .register: RegisterView()
@@ -87,8 +86,9 @@ struct RootView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(T.surface)
+                .modifier(SectionPanel(isRegister: section == .register))
             }
+            .padding(.horizontal, 10).padding(.bottom, 10).padding(.top, 6)
             if store.charge != .idle {
                 ChargeScreen().transition(.move(edge: .bottom)).zIndex(10)
             }
@@ -124,7 +124,8 @@ struct TopBar: View {
                     }
                     }
                         .padding(.horizontal, 12).frame(height: 32)
-                        .background(section == s ? Color.black.opacity(0.06) : .clear, in: RoundedRectangle(cornerRadius: 6))
+                        .background(section == s ? Color.white.opacity(0.8) : .clear, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                        .shadow(color: section == s ? .black.opacity(0.06) : .clear, radius: 3, y: 1)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -144,9 +145,21 @@ struct TopBar: View {
                 .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(T.rule))
         }
         .sheet(isPresented: $showHow) { HowItWorks() }
-        .padding(.leading, 84).padding(.trailing, 20)
-        .frame(height: 52)
-        .background(T.surface)
+        .padding(.leading, 76).padding(.trailing, 14)
+        .frame(height: 50)
+        .glass(radius: 16, strong: true)
+    }
+}
+
+/// Non-register sections sit in one large glass panel; the register lays out its own panels.
+struct SectionPanel: ViewModifier {
+    let isRegister: Bool
+    func body(content: Content) -> some View {
+        if isRegister { content } else {
+            content
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .glass(radius: 20)
+        }
     }
 }
 

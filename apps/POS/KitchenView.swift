@@ -30,7 +30,7 @@ struct KitchenView: View {
                     .scrollIndicators(.never)
                 }
                 .frame(maxWidth: .infinity)
-                .background(status == .ready ? T.bg : T.surface)
+                .background(status == .ready ? Color.white.opacity(0.25) : .clear)
                 if status != columns.last { VRule() }
             }
         }

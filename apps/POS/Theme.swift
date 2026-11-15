@@ -50,9 +50,7 @@ struct VRule: View { var body: some View { Rectangle().fill(T.rule).frame(width:
 struct Card: ViewModifier {
     var padding: CGFloat = 16
     func body(content: Content) -> some View {
-        content.padding(padding)
-            .background(T.surface, in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(T.rule))
+        content.padding(padding).modifier(Glass(radius: 16))
     }
 }
 
@@ -183,5 +181,85 @@ enum ItemPicture {
             ("cap", "hat.cap.fill"), ("hat", "hat.cap.fill"),
         ]
         return table.first { n.contains($0.0) }?.1 ?? p.category.icon
+    }
+}
+
+// MARK: - Glass
+
+/// Frosted panel: material fill, bright top-edge highlight, soft drop shadow.
+struct Glass: ViewModifier {
+    var radius: CGFloat = 18
+    var padding: CGFloat = 0
+    var strong = false
+    func body(content: Content) -> some View {
+        content
+            .padding(padding)
+            .background(strong ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(.ultraThinMaterial),
+                        in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .background(Color.white.opacity(strong ? 0.35 : 0.25), in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .strokeBorder(LinearGradient(colors: [.white.opacity(0.9), .white.opacity(0.25), .black.opacity(0.06)],
+                                                 startPoint: .top, endPoint: .bottom), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.07), radius: 24, y: 10)
+    }
+}
+
+extension View {
+    func glass(radius: CGFloat = 18, padding: CGFloat = 0, strong: Bool = false) -> some View {
+        modifier(Glass(radius: radius, padding: padding, strong: strong))
+    }
+}
+
+/// Soft grayscale backdrop with slowly drifting light/dark orbs so the glass has something to refract.
+struct GlassBackdrop: View {
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 30)) { ctx in
+            let t = ctx.date.timeIntervalSinceReferenceDate
+            GeometryReader { g in
+                let w = g.size.width, h = g.size.height
+                ZStack {
+                    LinearGradient(colors: [Color(white: 0.95), Color(white: 0.88)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    orb(Color(white: 0.62), size: w * 0.55, x: w * (0.2 + 0.06 * sin(t * 0.11)), y: h * (0.25 + 0.05 * cos(t * 0.13)))
+                    orb(Color.white, size: w * 0.6, x: w * (0.78 + 0.05 * cos(t * 0.09)), y: h * (0.2 + 0.06 * sin(t * 0.1)))
+                    orb(Color(white: 0.45), size: w * 0.45, x: w * (0.7 + 0.06 * sin(t * 0.07)), y: h * (0.85 + 0.04 * cos(t * 0.12)))
+                    orb(Color(white: 0.98), size: w * 0.5, x: w * (0.15 + 0.05 * cos(t * 0.08)), y: h * (0.9 + 0.05 * sin(t * 0.09)))
+                }
+            }
+        }
+        .ignoresSafeArea()
+    }
+
+    private func orb(_ c: Color, size: CGFloat, x: CGFloat, y: CGFloat) -> some View {
+        Circle().fill(c).frame(width: size, height: size).blur(radius: size * 0.28).position(x: x, y: y).opacity(0.85)
+    }
+}
+
+/// Glass segmented picker (replaces the stock segmented control).
+struct GlassSegments<V: Hashable>: View {
+    let options: [(String, V)]
+    @Binding var selection: V
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(options.indices, id: \.self) { i in
+                let (label, v) = options[i]
+                Button { withAnimation(.snappy(duration: 0.2)) { selection = v } } label: {
+                    Text(label).font(T.sans(12.5, selection == v ? .semibold : .regular))
+                        .foregroundStyle(selection == v ? T.text : T.dim)
+                        .frame(maxWidth: .infinity).frame(height: 28)
+                        .background {
+                            if selection == v {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous).fill(.white.opacity(0.85))
+                                    .shadow(color: .black.opacity(0.08), radius: 3, y: 1)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(Color.black.opacity(0.05), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }

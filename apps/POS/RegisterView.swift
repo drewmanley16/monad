@@ -7,18 +7,19 @@ struct RegisterView: View {
     enum Tab: String, CaseIterable { case library = "Library", keypad = "Keypad" }
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 10) {
             VStack(spacing: 0) {
                 header
-                Rule()
                 switch tab {
                 case .library: library
                 case .keypad: KeypadView()
                 }
             }
-            .background(T.bg)
-            VRule()
-            TicketView().frame(width: 380).background(T.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .glass(radius: 20)
+            TicketView().frame(width: 370)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .glass(radius: 20, strong: true)
         }
         .overlay(alignment: .top) {
             if let msg = store.setupBanner {
@@ -41,8 +42,7 @@ struct RegisterView: View {
 
     @ViewBuilder private var header: some View {
         HStack(spacing: 16) {
-            Picker("", selection: $tab) { ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) } }
-                .pickerStyle(.segmented).frame(width: 200).labelsHidden()
+            GlassSegments(options: Tab.allCases.map { ($0.rawValue, $0) }, selection: $tab).frame(width: 200)
             Spacer()
             if tab == .library {
                 HStack(spacing: 6) {
@@ -51,14 +51,12 @@ struct RegisterView: View {
                 }
                 .font(T.sans(13))
                 .padding(.horizontal, 10).frame(height: 30)
-                .background(T.surface, in: RoundedRectangle(cornerRadius: 6))
-                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(T.rule))
+                .background(Color.white.opacity(0.55), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(.white.opacity(0.8)))
             }
         }
-        .padding(.horizontal, 20).frame(height: 56)
-        .background(T.surface)
+        .padding(.horizontal, 18).frame(height: 56)
         if tab == .library {
-            Rule()
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
                     catButton("All items", nil)
@@ -66,8 +64,7 @@ struct RegisterView: View {
                 }
                 .padding(.horizontal, 16)
             }
-            .frame(height: 46)
-            .background(T.surface)
+            .frame(height: 40)
         }
     }
 
@@ -77,7 +74,8 @@ struct RegisterView: View {
             Text(title).font(T.sans(13, on ? .semibold : .regular)).fixedSize()
                 .foregroundStyle(on ? T.text : T.dim)
                 .padding(.horizontal, 10).frame(height: 30)
-                .background(on ? Color.black.opacity(0.07) : .clear, in: RoundedRectangle(cornerRadius: 6))
+                .background(on ? Color.white.opacity(0.8) : .clear, in: Capsule())
+                .shadow(color: on ? .black.opacity(0.06) : .clear, radius: 3, y: 1)
         }
         .buttonStyle(.plain)
     }
@@ -89,7 +87,7 @@ struct RegisterView: View {
                     ItemTile(product: p, qty: store.qty(of: p)) { store.tap(p) }
                 }
             }
-            .padding(20)
+            .padding(18)
         }
         .scrollIndicators(.never)
     }
@@ -99,66 +97,84 @@ struct ItemTile: View {
     let product: Product
     let qty: Int
     let action: () -> Void
+    @State private var hover = false
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 0) {
-                Color.clear
-                    .aspectRatio(1.25, contentMode: .fit)
-                    .overlay {
-                        ZStack {
-                            T.tile
-                            if let img = ItemPicture.photo(for: product.name) {
-                                Image(nsImage: img).resizable().scaledToFill()
-                            } else {
-                                Image(systemName: ItemPicture.symbol(for: product))
-                                    .font(.system(size: 40, weight: .light))
-                                    .foregroundStyle(Color(red: 0.32, green: 0.32, blue: 0.32))
-                            }
-                            if product.soldOut {
-                                Color.white.opacity(0.7)
-                                Text("Sold out").font(T.sans(14, .semibold)).foregroundStyle(T.text)
-                                    .padding(.horizontal, 10).frame(height: 28)
-                                    .background(.white, in: Capsule()).overlay(Capsule().strokeBorder(T.rule))
-                            }
+            Color.clear
+                .aspectRatio(0.95, contentMode: .fit)
+                .overlay {
+                    ZStack {
+                        LinearGradient(colors: [Color(white: 0.93), Color(white: 0.85)], startPoint: .top, endPoint: .bottom)
+                        if let img = ItemPicture.photo(for: product.name) {
+                            Image(nsImage: img).resizable().scaledToFill()
+                        } else {
+                            Image(systemName: ItemPicture.symbol(for: product))
+                                .font(.system(size: 40, weight: .light))
+                                .foregroundStyle(Color(white: 0.35))
+                                .offset(y: -18)
                         }
                     }
-                    .overlay(alignment: .topTrailing) {
-                        if qty > 0 {
-                            Text("\(qty)").font(T.mono(13, .semibold)).foregroundStyle(.white)
-                                .frame(minWidth: 24, minHeight: 24).background(T.text, in: Circle())
-                                .padding(8)
-                        }
-                    }
-                    .overlay(alignment: .bottomLeading) {
-                        if let s = product.stock, s > 0, s <= 5 {
-                            Text("\(s) left").font(T.sans(11, .semibold)).foregroundStyle(T.text)
-                                .padding(.horizontal, 7).frame(height: 20)
-                                .background(.white.opacity(0.92), in: Capsule())
-                                .padding(8)
-                        }
-                    }
-                    .clipped()
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 4) {
-                        Text(product.name).font(T.sans(14, .medium)).lineLimit(1)
-                        if product.category.hasOptions {
-                            Image(systemName: "slider.horizontal.3").font(.system(size: 10)).foregroundStyle(T.faint)
-                        }
-                    }
-                    Text("\(Money.usd(product.price))").font(T.mono(13)).foregroundStyle(T.dim)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12).padding(.vertical, 10)
-                .background(T.surface)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(qty > 0 ? T.text : T.rule, lineWidth: qty > 0 ? 1.5 : 1))
-            .contentShape(Rectangle())
-            .opacity(product.soldOut ? 0.75 : 1)
+                .overlay(alignment: .bottom) {
+                    HStack(alignment: .lastTextBaseline) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(product.name).font(T.sans(13.5, .semibold)).lineLimit(1)
+                            Text(Money.usd(product.price)).font(T.mono(12.5)).foregroundStyle(T.dim)
+                        }
+                        Spacer(minLength: 4)
+                        if product.category.hasOptions {
+                            Image(systemName: "slider.horizontal.3").font(.system(size: 10)).foregroundStyle(T.dim)
+                        }
+                    }
+                    .foregroundStyle(T.text)
+                    .padding(.horizontal, 11).padding(.vertical, 9)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .background(Color.white.opacity(0.45), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.white.opacity(0.7)))
+                    .padding(7)
+                }
+                .overlay(alignment: .topTrailing) {
+                    if qty > 0 {
+                        Text("\(qty)").font(T.mono(13, .semibold)).foregroundStyle(.white)
+                            .frame(minWidth: 26, minHeight: 26)
+                            .background(Color.black.opacity(0.75), in: Circle())
+                            .overlay(Circle().strokeBorder(.white.opacity(0.5)))
+                            .padding(9)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .overlay(alignment: .topLeading) {
+                    if let s = product.stock, s > 0, s <= 5 {
+                        Text("\(s) left").font(T.sans(11, .semibold)).foregroundStyle(T.text)
+                            .padding(.horizontal, 8).frame(height: 22)
+                            .background(.ultraThinMaterial, in: Capsule())
+                            .padding(9)
+                    }
+                }
+                .overlay {
+                    if product.soldOut {
+                        ZStack {
+                            Rectangle().fill(.ultraThinMaterial)
+                            Text("Sold out").font(T.sans(14, .semibold)).foregroundStyle(T.text)
+                        }
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(qty > 0 ? AnyShapeStyle(Color.black.opacity(0.75)) : AnyShapeStyle(LinearGradient(colors: [.white.opacity(0.9), .white.opacity(0.2)], startPoint: .top, endPoint: .bottom)),
+                                      lineWidth: qty > 0 ? 2 : 1)
+                )
+                .shadow(color: .black.opacity(hover ? 0.16 : 0.08), radius: hover ? 18 : 10, y: hover ? 8 : 4)
+                .scaleEffect(hover ? 1.02 : 1)
+                .animation(.snappy(duration: 0.2), value: hover)
+                .animation(.snappy, value: qty)
+                .contentShape(Rectangle())
         }
         .buttonStyle(TilePress())
         .disabled(product.soldOut)
+        .onHover { hover = $0 }
     }
 }
 
@@ -258,8 +274,7 @@ struct KeypadView: View {
                         }
                         .font(T.sans(26))
                         .frame(width: 110, height: 64)
-                        .background(T.surface, in: RoundedRectangle(cornerRadius: 8))
-                        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(T.rule))
+                        .glass(radius: 16)
                     }
                     .buttonStyle(TilePress())
                 }
@@ -325,19 +340,13 @@ struct TicketView: View {
 
             VStack(spacing: 11) {
                 control("Discount") {
-                    Picker("", selection: $store.discountPercent) {
-                        Text("None").tag(0); Text("10%").tag(10); Text("25%").tag(25); Text("Comp").tag(100)
-                    }
+                    GlassSegments(options: [("None", 0), ("10%", 10), ("25%", 25), ("Comp", 100)], selection: $store.discountPercent)
                 }
                 control("Tip") {
-                    Picker("", selection: $store.tipPercent) {
-                        Text("None").tag(0); Text("10%").tag(10); Text("15%").tag(15); Text("20%").tag(20)
-                    }
+                    GlassSegments(options: [("None", 0), ("10%", 10), ("15%", 15), ("20%", 20)], selection: $store.tipPercent)
                 }
                 if POSStore.splitEnabled { control("Split") {
-                    Picker("", selection: $store.splitCount) {
-                        Text("No").tag(1); Text("2").tag(2); Text("3").tag(3); Text("4").tag(4)
-                    }
+                    GlassSegments(options: [("No", 1), ("2", 2), ("3", 3), ("4", 4)], selection: $store.splitCount)
                 } }
                 Rule()
                 KV(k: "Subtotal", v: "\(Money.usd(store.subtotal))")
@@ -370,7 +379,7 @@ struct TicketView: View {
         HStack {
             Text(label).font(T.sans(14)).foregroundStyle(T.dim)
             Spacer()
-            picker().pickerStyle(.segmented).frame(width: 220).labelsHidden()
+            picker().frame(width: 220)
         }
     }
 
@@ -404,7 +413,7 @@ struct ChargeScreen: View {
 
     var body: some View {
         ZStack {
-            T.surface.ignoresSafeArea()
+            GlassBackdrop()
             switch store.charge {
             case .awaiting(let req): awaiting(req)
             case .paid(let req, let ev): paid(req, ev)
@@ -444,18 +453,19 @@ struct ChargeScreen: View {
             Spacer().frame(height: 48)
             HStack(spacing: 40) {
                 VStack(spacing: 14) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12).fill(T.bg).frame(width: 200, height: 200)
-                        ContactlessRings(color: T.text, size: 180, icon: "wave.3.right")
-                    }
+                    ContactlessRings(color: T.text, size: 180, icon: "wave.3.right")
+                        .frame(width: 200, height: 200)
+                        .glass(radius: 24, strong: true)
                     Text(isSplit ? "Next phone, tap here" : "Hold phone near this Mac").font(T.sans(16, .semibold))
                     Text("Tapnad Wallet").font(T.sans(13)).foregroundStyle(T.dim)
                 }
                 Rectangle().fill(T.rule).frame(width: 1, height: 180)
                 VStack(spacing: 14) {
                     Image(nsImage: qrNSImage(req.webURL.absoluteString)).interpolation(.none).resizable()
-                        .frame(width: 176, height: 176).padding(12)
-                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(T.rule))
+                        .frame(width: 164, height: 164).padding(18)
+                        .background(.white, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(.white))
+                        .shadow(color: .black.opacity(0.08), radius: 24, y: 10)
                     Text("Scan to pay").font(T.sans(16, .semibold))
                     Text("Any phone camera, no app needed").font(T.sans(13)).foregroundStyle(T.dim)
                 }
