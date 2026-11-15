@@ -1,28 +1,21 @@
 # Tapnad — tap-to-pay on Monad
 
-An Apple-Wallet-style iPhone wallet that pays merchants on **Monad testnet** with a tap (NFC) or scan (QR),
-plus a merchant terminal that confirms the payment **in milliseconds** by streaming Monad's speculative
-`monadLogs` (Proposed → Voted → Finalized).
+Native Swift. An Apple-Wallet-style **iPhone wallet** taps a **Mac point-of-sale** to pay in MON on Monad testnet.
+The register shows **Approved** the moment the payment is *Proposed* (~300 ms blocks), then walks through
+Voted → Finalized live via Monad's `monadLogs` commit-state stream.
 
-| Part | Path | Stack |
+| Part | Path | Notes |
 |---|---|---|
-| Settlement contract | `contracts/` | Solidity + Foundry — `MonadPay.pay(merchant, invoiceId, memo)` forwards MON, emits `Paid` |
-| iPhone wallet | `ios/` | SwiftUI, CoreNFC, VisionKit, Face ID, on-device secp256k1 signing (no wallet SDK) |
-| Merchant terminal | `terminal/index.html` | Single HTML page, raw WebSocket to `wss://testnet-rpc.monad.xyz` |
+| Wallet (iOS 18+) | `apps/Wallet` | SwiftUI, on-device secp256k1 signing (no wallet SDK), Face ID, Keychain |
+| POS (macOS 15+) | `apps/POS` | Catalog + cart, charge screen, Activity dashboard (Swift Charts), live blocks |
+| Shared | `apps/Shared` | Monad RPC + WebSocket stream, MonadPay ABI, payment request, design system |
+| Contract | `contracts/` | `MonadPay.pay(merchant, invoiceId, memo)` — forwards MON, emits `Paid` |
+
+**Tap transport:** the POS advertises the active charge over **Bluetooth LE** (a real iPhone triggers only when
+held against the Mac, by RSSI) and **Bonjour** (iOS Simulator on the same Mac).
 
 ## Run
 ```bash
-# contract (needs a funded key in contracts/.env)
-cd contracts && forge test && ./deploy.sh
-
-# terminal
-open terminal/index.html
-
-# iOS
-cd ios && xcodegen generate && open Tapnad.xcodeproj   # run on a physical iPhone for NFC
+./scripts/go.sh   # waits for deployer funds → deploys → builds & launches both apps → funds the sim wallet
 ```
-
-## Why Monad
-- ~300 ms blocks + speculative execution: the terminal turns green on the **Proposed** event, before
-  finality — the same UX as a card network's authorization, with finality ~1 s later.
-- `monadLogs` delivers commit-state updates per block; the UI shows each stage with live timings.
+Manual: `cd apps && xcodegen generate && open Tapnad.xcodeproj` (schemes: Wallet, POS).
