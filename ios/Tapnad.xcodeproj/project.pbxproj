@@ -1,0 +1,419 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1609DBB77C3E7E4486955803 /* P256K in Frameworks */ = {isa = PBXBuildFile; productRef = 35E0A64FEB399705F327795D /* P256K */; };
+		2C4485AC08DD09F80A7CAB13 /* CardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98A06FAD5A0E732426254520 /* CardView.swift */; };
+		48B3DC2BD1B192F805D0D528 /* TapnadApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F3A18FF5FAC1C1D5DDEB6C9 /* TapnadApp.swift */; };
+		524ECD7604DE9C0DD7452346 /* MonadRPC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88265E98BA4BA94389549898 /* MonadRPC.swift */; };
+		79FFAE15F345D4A1C32C0D23 /* EthCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 428345D765D47B3CE1945F5E /* EthCore.swift */; };
+		83345AAAB8BBC6D6DB4C4145 /* Services.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58CD52373AAF9E694E73BF2A /* Services.swift */; };
+		AF35F79A6DF73907BA60C3EE /* WalletStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C139901EB6FC27830E69E732 /* WalletStore.swift */; };
+		B7A10AB535E32D92F3252A04 /* ReceiveSettingsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10CA4BDA31F904779F40974 /* ReceiveSettingsViews.swift */; };
+		C7796A2FBA878FFE1FE3F523 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 358334E52A99A0482D4C49BC /* HomeView.swift */; };
+		E914C3E7C21709E642E2B376 /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = C90389D2A93B646726237042 /* CryptoSwift */; };
+		F8728ABBEDE85AD0214B7418 /* PaySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE4C0BEE0FC70C380CCD9B36 /* PaySheet.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		097FD44D71B64DBDBA5E949D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		358334E52A99A0482D4C49BC /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		3F3A18FF5FAC1C1D5DDEB6C9 /* TapnadApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TapnadApp.swift; sourceTree = "<group>"; };
+		428345D765D47B3CE1945F5E /* EthCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EthCore.swift; sourceTree = "<group>"; };
+		58CD52373AAF9E694E73BF2A /* Services.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services.swift; sourceTree = "<group>"; };
+		715D826C144C4A39F9D64098 /* Tapnad.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Tapnad.entitlements; sourceTree = "<group>"; };
+		88265E98BA4BA94389549898 /* MonadRPC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonadRPC.swift; sourceTree = "<group>"; };
+		98A06FAD5A0E732426254520 /* CardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardView.swift; sourceTree = "<group>"; };
+		9ECA1BCD8EBD416A594DB5B5 /* Tapnad.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Tapnad.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AE4C0BEE0FC70C380CCD9B36 /* PaySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaySheet.swift; sourceTree = "<group>"; };
+		C10CA4BDA31F904779F40974 /* ReceiveSettingsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveSettingsViews.swift; sourceTree = "<group>"; };
+		C139901EB6FC27830E69E732 /* WalletStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletStore.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F9A126DE33BCF8207CCDAC27 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1609DBB77C3E7E4486955803 /* P256K in Frameworks */,
+				E914C3E7C21709E642E2B376 /* CryptoSwift in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		03711921A707DCBCE8C2F839 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9ECA1BCD8EBD416A594DB5B5 /* Tapnad.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		0BFDCB7D4DBA953F4F27EFD3 = {
+			isa = PBXGroup;
+			children = (
+				7F4E41F77031949B313ED382 /* Tapnad */,
+				03711921A707DCBCE8C2F839 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1A309CC4E6503EFE78C8D284 /* Eth */ = {
+			isa = PBXGroup;
+			children = (
+				428345D765D47B3CE1945F5E /* EthCore.swift */,
+				88265E98BA4BA94389549898 /* MonadRPC.swift */,
+			);
+			path = Eth;
+			sourceTree = "<group>";
+		};
+		2E2351C86FC5ECED93A9357C /* App */ = {
+			isa = PBXGroup;
+			children = (
+				3F3A18FF5FAC1C1D5DDEB6C9 /* TapnadApp.swift */,
+				C139901EB6FC27830E69E732 /* WalletStore.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		7F4E41F77031949B313ED382 /* Tapnad */ = {
+			isa = PBXGroup;
+			children = (
+				2E2351C86FC5ECED93A9357C /* App */,
+				1A309CC4E6503EFE78C8D284 /* Eth */,
+				ED8D7BB6CCD1B138FA23CED9 /* Resources */,
+				DAF5112CF53F0125BEB74873 /* Services */,
+				D71E373BA70B32CF2BB58CDB /* Views */,
+			);
+			path = Tapnad;
+			sourceTree = "<group>";
+		};
+		D71E373BA70B32CF2BB58CDB /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				98A06FAD5A0E732426254520 /* CardView.swift */,
+				358334E52A99A0482D4C49BC /* HomeView.swift */,
+				AE4C0BEE0FC70C380CCD9B36 /* PaySheet.swift */,
+				C10CA4BDA31F904779F40974 /* ReceiveSettingsViews.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		DAF5112CF53F0125BEB74873 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				58CD52373AAF9E694E73BF2A /* Services.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		ED8D7BB6CCD1B138FA23CED9 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				097FD44D71B64DBDBA5E949D /* Info.plist */,
+				715D826C144C4A39F9D64098 /* Tapnad.entitlements */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3657FD5E72CA6904952D9671 /* Tapnad */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0B89120224D8C9064E46694C /* Build configuration list for PBXNativeTarget "Tapnad" */;
+			buildPhases = (
+				5147F88311B73C79C8BB74BE /* Sources */,
+				F9A126DE33BCF8207CCDAC27 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Tapnad;
+			packageProductDependencies = (
+				35E0A64FEB399705F327795D /* P256K */,
+				C90389D2A93B646726237042 /* CryptoSwift */,
+			);
+			productName = Tapnad;
+			productReference = 9ECA1BCD8EBD416A594DB5B5 /* Tapnad.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C9174FA79225D82EBF25E8B0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					3657FD5E72CA6904952D9671 = {
+						DevelopmentTeam = X9H68STU8F;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 18AFB15A665440D4B3D34139 /* Build configuration list for PBXProject "Tapnad" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 0BFDCB7D4DBA953F4F27EFD3;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				33105F85745BA6F94868D315 /* XCRemoteSwiftPackageReference "CryptoSwift" */,
+				3C6DF8DC7C2ED93438B5787E /* XCRemoteSwiftPackageReference "swift-secp256k1" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 03711921A707DCBCE8C2F839 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				3657FD5E72CA6904952D9671 /* Tapnad */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5147F88311B73C79C8BB74BE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2C4485AC08DD09F80A7CAB13 /* CardView.swift in Sources */,
+				79FFAE15F345D4A1C32C0D23 /* EthCore.swift in Sources */,
+				C7796A2FBA878FFE1FE3F523 /* HomeView.swift in Sources */,
+				524ECD7604DE9C0DD7452346 /* MonadRPC.swift in Sources */,
+				F8728ABBEDE85AD0214B7418 /* PaySheet.swift in Sources */,
+				B7A10AB535E32D92F3252A04 /* ReceiveSettingsViews.swift in Sources */,
+				83345AAAB8BBC6D6DB4C4145 /* Services.swift in Sources */,
+				48B3DC2BD1B192F805D0D528 /* TapnadApp.swift in Sources */,
+				AF35F79A6DF73907BA60C3EE /* WalletStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		3876AB44CF02E34E54758522 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Tapnad/Resources/Tapnad.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Tapnad/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.drewmanley.Tapnad;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		474CA7DD524E782D0ADCA60B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = X9H68STU8F;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		933F2CD01CAEF59446ADA87A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = X9H68STU8F;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		935697CCB85FF2CFB6103B06 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Tapnad/Resources/Tapnad.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Tapnad/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.drewmanley.Tapnad;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0B89120224D8C9064E46694C /* Build configuration list for PBXNativeTarget "Tapnad" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3876AB44CF02E34E54758522 /* Debug */,
+				935697CCB85FF2CFB6103B06 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		18AFB15A665440D4B3D34139 /* Build configuration list for PBXProject "Tapnad" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				933F2CD01CAEF59446ADA87A /* Debug */,
+				474CA7DD524E782D0ADCA60B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		33105F85745BA6F94868D315 /* XCRemoteSwiftPackageReference "CryptoSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/krzyzanowskim/CryptoSwift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.8.4;
+			};
+		};
+		3C6DF8DC7C2ED93438B5787E /* XCRemoteSwiftPackageReference "swift-secp256k1" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/21-DOT-DEV/swift-secp256k1";
+			requirement = {
+				kind = exactVersion;
+				version = 0.21.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		35E0A64FEB399705F327795D /* P256K */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3C6DF8DC7C2ED93438B5787E /* XCRemoteSwiftPackageReference "swift-secp256k1" */;
+			productName = P256K;
+		};
+		C90389D2A93B646726237042 /* CryptoSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 33105F85745BA6F94868D315 /* XCRemoteSwiftPackageReference "CryptoSwift" */;
+			productName = CryptoSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = C9174FA79225D82EBF25E8B0 /* Project object */;
+}
