@@ -19,11 +19,12 @@ struct POSApp: App {
 }
 
 enum NavSection: String, CaseIterable, Identifiable {
-    case register = "Checkout", orders = "Transactions", customers = "Customers", reports = "Reports", items = "Items", settings = "Settings"
+    case register = "Checkout", kitchen = "Orders", orders = "Transactions", customers = "Customers", reports = "Reports", items = "Items", settings = "Settings"
     var id: String { rawValue }
     var icon: String {
         switch self {
         case .register: "cart"
+        case .kitchen: "list.clipboard"
         case .orders: "list.bullet.rectangle"
         case .customers: "person.2"
         case .reports: "chart.bar"
@@ -47,6 +48,7 @@ struct RootView: View {
                 Group {
                     switch section {
                     case .register: RegisterView()
+                    case .kitchen: KitchenView()
                     case .orders: OrdersView()
                     case .customers: CustomersView()
                     case .reports: InsightsView()
@@ -76,9 +78,15 @@ struct TopBar: View {
             Text("Tapnad").font(T.sans(16, .bold)).padding(.trailing, 18)
             ForEach(NavSection.allCases) { s in
                 Button { section = s } label: {
+                    HStack(spacing: 5) {
                     Text(s.rawValue)
                         .font(T.sans(14, section == s ? .semibold : .regular))
                         .foregroundStyle(section == s ? T.text : T.dim)
+                    if s == .kitchen, store.tickets.contains(where: { $0.status == .new }) {
+                        Text("\(store.tickets.filter { $0.status == .new }.count)").font(T.mono(11, .semibold)).foregroundStyle(.white)
+                            .padding(.horizontal, 6).frame(height: 18).background(T.text, in: Capsule())
+                    }
+                    }
                         .padding(.horizontal, 12).frame(height: 32)
                         .background(section == s ? Color.black.opacity(0.06) : .clear, in: RoundedRectangle(cornerRadius: 6))
                         .contentShape(Rectangle())

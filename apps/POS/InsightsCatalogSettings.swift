@@ -153,6 +153,7 @@ struct CatalogView: View {
                                         HStack(alignment: .lastTextBaseline, spacing: 10) {
                                             Text(p.name).font(T.sans(14))
                                             Leader()
+                                            Text(p.stock.map { $0 == 0 ? "sold out" : "\($0) in stock" } ?? "").font(T.mono(12)).foregroundStyle(T.faint)
                                             Text("\(store.unitsSold(p)) sold").font(T.mono(12)).foregroundStyle(T.faint)
                                             Text(MON.format(p.price, maxFraction: 4)).font(T.mono(13)).frame(width: 64, alignment: .trailing)
                                             Text("edit").font(T.sans(12)).foregroundStyle(T.faint)
@@ -183,11 +184,13 @@ struct ProductEditor: View {
     @State private var name = ""
     @State private var category: ProductCategory = .coffee
     @State private var price = ""
+    @State private var stock = ""
 
     var body: some View {
         Form {
             TextField("Name", text: $name)
             TextField("Price (MON)", text: $price)
+            TextField("Stock (blank = don't track)", text: $stock)
             Picker("Category", selection: $category) {
                 ForEach(ProductCategory.allCases) { Text($0.rawValue).tag($0) }
             }
@@ -196,7 +199,7 @@ struct ProductEditor: View {
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                 Button(product == nil ? "Add" : "Save") {
-                    store.upsert(Product(id: product?.id ?? UUID().uuidString, name, product?.emoji ?? "", category, price))
+                    store.upsert(Product(id: product?.id ?? UUID().uuidString, name, product?.emoji ?? "", category, price, stock: Int(stock)))
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
@@ -207,7 +210,7 @@ struct ProductEditor: View {
         .formStyle(.grouped)
         .frame(width: 420)
         .onAppear {
-            if let p = product { name = p.name; category = p.category; price = MON.format(p.price, maxFraction: 18) }
+            if let p = product { name = p.name; category = p.category; price = MON.format(p.price, maxFraction: 18); stock = p.stock.map(String.init) ?? "" }
         }
     }
 }
@@ -224,6 +227,12 @@ struct POSSettingsView: View {
             VStack(alignment: .leading, spacing: 30) {
                 block("Business") {
                     row("Name") { TextField("", text: $store.merchantName).textFieldStyle(.plain).font(T.sans(13)).frame(width: 320) }
+                }
+                block("Tax") {
+                    row("Rate %") {
+                        TextField("0", value: $store.taxPercent, format: .number).textFieldStyle(.plain).font(T.mono(13)).frame(width: 80)
+                    }
+                    Text("Added on top of the discounted subtotal at checkout.").font(T.sans(12)).foregroundStyle(T.faint)
                 }
                 block("Payouts") {
                     row("Address") {

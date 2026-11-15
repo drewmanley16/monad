@@ -37,6 +37,7 @@
 		B425B44D1B5EEFED22F079B6 /* Core.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4112F284972684AE4BABDF /* Core.swift */; };
 		B609110DF144BDFCDD035482 /* chai.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 648C1ACB1F9D1F4CE63E5078 /* chai.jpg */; };
 		C7A8DCB19DB33AFB086DCC45 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A6FD47EC7D72BD45AAAFA9 /* RegisterView.swift */; };
+		CBE0A5E1C8805278174EF0EA /* KitchenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA6676A96AB0AC571014E4CB /* KitchenView.swift */; };
 		D05C485767EAF51ECA8DEB79 /* avo-toast.jpg in Resources */ = {isa = PBXBuildFile; fileRef = B5B1CCB47DA5E714B5BF2664 /* avo-toast.jpg */; };
 		E63E336D4586567E6460AC9E /* WalletModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 688D0EAAF05E5BF3D811D756 /* WalletModels.swift */; };
 		E7952C8CA2EABCC1BF56DF71 /* EthAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DA65028C79102D7683FBAB1 /* EthAccount.swift */; };
@@ -73,6 +74,7 @@
 		ABD2AB47A91482BD19B92459 /* cold-brew.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "cold-brew.jpg"; sourceTree = "<group>"; };
 		B5B1CCB47DA5E714B5BF2664 /* avo-toast.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "avo-toast.jpg"; sourceTree = "<group>"; };
 		B6700ED19BFF085244D8ADAE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		CA6676A96AB0AC571014E4CB /* KitchenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KitchenView.swift; sourceTree = "<group>"; };
 		CC0BB27A21305D9E05B3CED9 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
 		D45302A0A1CBC69F13EE466B /* OrdersCustomers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersCustomers.swift; sourceTree = "<group>"; };
 		D5A6FD47EC7D72BD45AAAFA9 /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterView.swift; sourceTree = "<group>"; };
@@ -121,6 +123,7 @@
 			children = (
 				B6700ED19BFF085244D8ADAE /* Info.plist */,
 				78ACADF819E2842747C28D3A /* InsightsCatalogSettings.swift */,
+				CA6676A96AB0AC571014E4CB /* KitchenView.swift */,
 				D45302A0A1CBC69F13EE466B /* OrdersCustomers.swift */,
 				8CF8BD126CA9ACA08C78AA6C /* POSApp.swift */,
 				813A1B2E8B372CCCC53A2F59 /* POSStore.swift */,
@@ -294,6 +297,7 @@
 				92A1C8046F1005D2B96B266C /* Core.swift in Sources */,
 				96F927A3FD7540EF8280B10E /* Design.swift in Sources */,
 				0741182D7D547AD78B998666 /* InsightsCatalogSettings.swift in Sources */,
+				CBE0A5E1C8805278174EF0EA /* KitchenView.swift in Sources */,
 				2D41EEB129384B56FC173DA0 /* OrdersCustomers.swift in Sources */,
 				9B184FD787AEE2811AB30CE3 /* POSApp.swift in Sources */,
 				14AF20FE45114DF1DAA3F251 /* POSStore.swift in Sources */,

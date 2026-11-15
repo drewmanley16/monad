@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 import AppKit
 
-// MARK: - Models
+// MARK: - Catalog
 
 enum ProductCategory: String, Codable, CaseIterable, Identifiable {
     case coffee = "Coffee", tea = "Tea", food = "Food", drinks = "Drinks", merch = "Merch"
@@ -16,7 +16,9 @@ enum ProductCategory: String, Codable, CaseIterable, Identifiable {
         case .merch: "tshirt.fill"
         }
     }
-
+    /// Counts toward loyalty stamps.
+    var isDrink: Bool { self == .coffee || self == .tea }
+    var hasOptions: Bool { self == .coffee || self == .tea }
 }
 
 struct Product: Identifiable, Codable, Hashable {
@@ -25,35 +27,77 @@ struct Product: Identifiable, Codable, Hashable {
     var emoji: String
     var category: ProductCategory
     var priceWei: String
+    var stock: Int?                  // nil = untracked
     var price: Wei { Wei(priceWei) ?? 0 }
+    var soldOut: Bool { (stock ?? 1) <= 0 }
 
-    init(id: String = UUID().uuidString, _ name: String, _ emoji: String, _ cat: ProductCategory, _ price: String) {
+    init(id: String = UUID().uuidString, _ name: String, _ emoji: String, _ cat: ProductCategory, _ price: String, stock: Int? = nil) {
         self.id = id; self.name = name; self.emoji = emoji; self.category = cat
         self.priceWei = String(MON.parse(price) ?? 0)
+        self.stock = stock
     }
 
     static let defaults: [Product] = [
-        .init("Espresso", "☕️", .coffee, "0.02"),
-        .init("Oat Latte", "🥛", .coffee, "0.035"),
-        .init("Cold Brew", "🧊", .coffee, "0.03"),
-        .init("Cortado", "🤎", .coffee, "0.03"),
-        .init("Matcha Latte", "🍵", .tea, "0.04"),
-        .init("Chai", "🫖", .tea, "0.032"),
-        .init("Croissant", "🥐", .food, "0.025"),
-        .init("Everything Bagel", "🥯", .food, "0.02"),
-        .init("Avo Toast", "🥑", .food, "0.06"),
-        .init("Sparkling Water", "💧", .drinks, "0.01"),
-        .init("Orange Juice", "🍊", .drinks, "0.028"),
-        .init("Nad Tee", "👕", .merch, "0.25"),
-        .init("Purple Cap", "🧢", .merch, "0.18"),
+        .init("Espresso", "", .coffee, "0.02"),
+        .init("Oat Latte", "", .coffee, "0.035"),
+        .init("Cold Brew", "", .coffee, "0.03"),
+        .init("Cortado", "", .coffee, "0.03"),
+        .init("Matcha Latte", "", .tea, "0.04"),
+        .init("Chai", "", .tea, "0.032"),
+        .init("Croissant", "", .food, "0.025", stock: 12),
+        .init("Everything Bagel", "", .food, "0.02", stock: 10),
+        .init("Avo Toast", "", .food, "0.06", stock: 8),
+        .init("Sparkling Water", "", .drinks, "0.01"),
+        .init("Orange Juice", "", .drinks, "0.028"),
+        .init("Nad Tee", "", .merch, "0.25", stock: 20),
+        .init("Purple Cap", "", .merch, "0.18", stock: 15),
     ]
 }
+
+/// Drink modifiers.
+struct DrinkOptions: Hashable, Codable {
+    enum Size: String, CaseIterable, Codable { case small = "Small", large = "Large" }
+    enum Milk: String, CaseIterable, Codable { case whole = "Whole", oat = "Oat", almond = "Almond", none = "No milk" }
+    var size: Size = .small
+    var milk: Milk = .whole
+    var extraShot = false
+
+    static let largeUp = MON.parse("0.01")!
+    static let altMilk = MON.parse("0.005")!
+    static let shot = MON.parse("0.008")!
+
+    var surcharge: Wei {
+        (size == .large ? Self.largeUp : 0) + (milk == .oat || milk == .almond ? Self.altMilk : 0) + (extraShot ? Self.shot : 0)
+    }
+    var summary: String {
+        var parts: [String] = []
+        if size == .large { parts.append("Large") }
+        if milk != .whole { parts.append(milk.rawValue + (milk == .none ? "" : " milk")) }
+        if extraShot { parts.append("Extra shot") }
+        return parts.joined(separator: ", ")
+    }
+}
+
+struct CartLine: Identifiable, Hashable {
+    let id = UUID()
+    let product: Product
+    var options: DrinkOptions?
+    var qty: Int
+    var unit: Wei { product.price + (options?.surcharge ?? 0) }
+    var total: Wei { unit * Wei(qty) }
+    var title: String { product.name }
+    var detail: String? { options.flatMap { $0.summary.isEmpty ? nil : $0.summary } }
+}
+
+// MARK: - Ledger
 
 struct OrderLine: Codable, Hashable {
     let name: String
     let emoji: String
     let qty: Int
     let unitWei: String
+    var options: String?
+    var isDrink: Bool?
     var unit: Wei { Wei(unitWei) ?? 0 }
 }
 
@@ -61,16 +105,29 @@ struct Sale: Identifiable, Codable, Hashable {
     var id: String { event.invoiceId }
     let event: PaidEvent
     let date: Date
-    var states: [String: Double]          // CommitState.rawValue -> seconds since first sighting
+    var states: [String: Double]
     var lines: [OrderLine]?
     var tipWei: String?
+    var orderNumber: Int?
+    var splitPart: String?           // "2/3"
 
     var finalizedMs: Int? { states[CommitState.finalized.rawValue].map { Int($0 * 1000) } }
-    var votedMs: Int? { states[CommitState.voted.rawValue].map { Int($0 * 1000) } }
     var tip: Wei { tipWei.flatMap { Wei($0) } ?? 0 }
     var latestState: CommitState {
         states[CommitState.finalized.rawValue] != nil ? .finalized : states[CommitState.voted.rawValue] != nil ? .voted : .proposed
     }
+    var drinkCount: Int { (lines ?? []).filter { $0.isDrink ?? false }.reduce(0) { $0 + $1.qty } }
+}
+
+enum TicketStatus: String, Codable, CaseIterable { case new = "New", preparing = "Preparing", ready = "Ready", done = "Picked up" }
+
+struct KitchenTicket: Identifiable, Codable, Hashable {
+    var id: Int { number }
+    let number: Int
+    let lines: [OrderLine]
+    let payer: String
+    let createdAt: Date
+    var status: TicketStatus
 }
 
 struct Customer: Identifiable {
@@ -78,18 +135,23 @@ struct Customer: Identifiable {
     let address: String
     let sales: [Sale]
     var total: Wei { sales.reduce(0) { $0 + $1.event.amount } }
-    var visits: Int { sales.count }
+    var visits: Int { Set(sales.map { $0.orderNumber.map(String.init) ?? $0.id }).count }
     var lastSeen: Date { sales.map(\.date).max() ?? .distantPast }
+    var drinks: Int { sales.reduce(0) { $0 + $1.drinkCount } }
+    var stamps: Int { drinks % LoyaltyProgram.stampsForReward }
+    var rewardsEarned: Int { drinks / LoyaltyProgram.stampsForReward }
     var favorite: String? {
-        let counts = sales.flatMap { $0.lines ?? [] }.reduce(into: [String: Int]()) { $0[$1.emoji + " " + $1.name, default: 0] += $1.qty }
+        let counts = sales.flatMap { $0.lines ?? [] }.reduce(into: [String: Int]()) { $0[$1.name, default: 0] += $1.qty }
         return counts.max { $0.value < $1.value }?.key
     }
     var tier: (name: String, color: Color) {
-        if visits >= 5 || total >= MON.parse("1")! { return ("VIP", T.amber) }
-        if visits >= 2 { return ("Regular", T.accent) }
-        return ("New", T.green)
+        if visits >= 5 || total >= MON.parse("1")! { return ("VIP", T.text) }
+        if visits >= 2 { return ("Regular", T.dim) }
+        return ("New", T.faint)
     }
 }
+
+enum LoyaltyProgram { static let stampsForReward = 8 }
 
 // MARK: - Store
 
@@ -98,21 +160,31 @@ final class POSStore: ObservableObject {
     // Settings
     @AppStorage("pos.name") var merchantName = "Tapnad Café" { didSet { beacon.name = merchantName } }
     @AppStorage("pos.payout") var payout = "0x2bbf6125b26B771098836f981F0588A943641b6B"
+    @AppStorage("pos.taxPercent") var taxPercent: Double = 0
 
     // Catalog
     @Published var catalog: [Product] = [] { didSet { saveCatalog() } }
 
     // Register
-    @Published var cart: [String: Int] = [:]
+    @Published var cart: [CartLine] = []
     @Published var customAmount: Wei?
     @Published var tipPercent: Int = 0
+    @Published var discountPercent: Int = 0
+    @Published var splitCount: Int = 1
     @Published var search = ""
     @Published var categoryFilter: ProductCategory?
+    @Published var optionsFor: Product?
+
+    // Charge
     @Published var charge: Charge = .idle
     @Published var stateMs: [CommitState: Int] = [:]
+    @Published var parts: [PaymentRequest] = []
+    @Published var paidParts: [PaidEvent] = []
+    @Published var lastOrderNumber: Int?
 
     // Ledger
     @Published var sales: [Sale] = []
+    @Published var tickets: [KitchenTicket] = []
 
     // Chain
     @Published var connected = false
@@ -132,13 +204,15 @@ final class POSStore: ObservableObject {
     let beacon = TapBeacon()
     private var stream: MonadStream?
     private var firstSeen: [String: Date] = [:]
-    private var pendingOrders: [String: (lines: [OrderLine], tip: Wei)] = [:]
+    private var pendingOrders: [String: (lines: [OrderLine], tip: Wei, number: Int, part: String?)] = [:]
     private var lastProposed: Date?
+    @AppStorage("pos.nextOrder") private var nextOrderNumber = 101
 
     init() {
         beacon.name = merchantName
         let d = UserDefaults.standard
         if let data = d.data(forKey: "pos.sales"), let s = try? JSONDecoder().decode([Sale].self, from: data) { sales = s }
+        if let data = d.data(forKey: "pos.tickets"), let t = try? JSONDecoder().decode([KitchenTicket].self, from: data) { tickets = t }
         if let data = d.data(forKey: "pos.catalog"), let c = try? JSONDecoder().decode([Product].self, from: data), !c.isEmpty {
             catalog = c
         } else {
@@ -156,21 +230,46 @@ final class POSStore: ObservableObject {
         }
     }
 
-    var lines: [(product: Product, qty: Int)] { catalog.compactMap { p in cart[p.id].map { (p, $0) } } }
-    var subtotal: Wei { lines.reduce(customAmount ?? 0) { $0 + $1.product.price * Wei($1.qty) } }
-    var tip: Wei { subtotal * Wei(tipPercent) / 100 }
-    var total: Wei { subtotal + tip }
-    var itemCount: Int { lines.reduce(0) { $0 + $1.qty } + (customAmount == nil ? 0 : 1) }
+    func qty(of p: Product) -> Int { cart.filter { $0.product.id == p.id }.reduce(0) { $0 + $1.qty } }
 
-    func add(_ p: Product) { withAnimation(.snappy) { cart[p.id, default: 0] += 1 } }
-    func decrement(_ p: Product) {
-        withAnimation(.snappy) { if let q = cart[p.id], q > 1 { cart[p.id] = q - 1 } else { cart[p.id] = nil } }
+    var subtotal: Wei { cart.reduce(customAmount ?? 0) { $0 + $1.total } }
+    var discount: Wei { subtotal * Wei(discountPercent) / 100 }
+    var tax: Wei { Wei(Double(subtotal - discount) * taxPercent / 100) }
+    var tip: Wei { (subtotal - discount) * Wei(tipPercent) / 100 }
+    var total: Wei { subtotal - discount + tax + tip }
+    var itemCount: Int { cart.reduce(0) { $0 + $1.qty } + (customAmount == nil ? 0 : 1) }
+
+    /// Tile tap: drinks open the options sheet, everything else adds directly.
+    func tap(_ p: Product) {
+        guard !p.soldOut, qty(of: p) < (p.stock ?? .max) else { return }
+        if p.category.hasOptions { optionsFor = p } else { add(p, options: nil) }
     }
-    func clear() { withAnimation(.snappy) { cart = [:]; customAmount = nil; tipPercent = 0 } }
+
+    func add(_ p: Product, options: DrinkOptions?) {
+        withAnimation(.snappy) {
+            if let i = cart.firstIndex(where: { $0.product.id == p.id && $0.options == options }) { cart[i].qty += 1 }
+            else { cart.append(CartLine(product: p, options: options, qty: 1)) }
+        }
+    }
+    func increment(_ line: CartLine) {
+        guard let i = cart.firstIndex(of: line), qty(of: line.product) < (line.product.stock ?? .max) else { return }
+        withAnimation(.snappy) { cart[i].qty += 1 }
+    }
+    func decrement(_ line: CartLine) {
+        guard let i = cart.firstIndex(of: line) else { return }
+        withAnimation(.snappy) { if cart[i].qty > 1 { cart[i].qty -= 1 } else { cart.remove(at: i) } }
+    }
+    func clear() {
+        withAnimation(.snappy) { cart = []; customAmount = nil; tipPercent = 0; discountPercent = 0; splitCount = 1 }
+    }
 
     private var memo: String {
-        var parts = lines.map { $0.qty > 1 ? "\($0.qty)× \($0.product.name)" : $0.product.name }
+        var parts = cart.map { l -> String in
+            let base = l.qty > 1 ? "\(l.qty)× \(l.title)" : l.title
+            return l.detail.map { "\(base) (\($0))" } ?? base
+        }
         if customAmount != nil { parts.append("Custom") }
+        if discountPercent > 0 { parts.append("−\(discountPercent)%") }
         if tipPercent > 0 { parts.append("Tip \(tipPercent)%") }
         return parts.joined(separator: ", ")
     }
@@ -180,33 +279,74 @@ final class POSStore: ObservableObject {
     func upsert(_ p: Product) {
         if let i = catalog.firstIndex(where: { $0.id == p.id }) { catalog[i] = p } else { catalog.append(p) }
     }
-    func remove(_ p: Product) { catalog.removeAll { $0.id == p.id }; cart[p.id] = nil }
+    func remove(_ p: Product) { catalog.removeAll { $0.id == p.id }; cart.removeAll { $0.product.id == p.id } }
     func unitsSold(_ p: Product) -> Int {
         sales.flatMap { $0.lines ?? [] }.filter { $0.name == p.name }.reduce(0) { $0 + $1.qty }
     }
 
-    // MARK: Charge
+    // MARK: Charge (with optional split)
 
     func startCharge() {
         guard total > 0, isAddress(payout) else { return }
-        let req = PaymentRequest(merchant: payout, amount: total, memo: memo, merchantName: merchantName)
-        var orderLines = lines.map { OrderLine(name: $0.product.name, emoji: $0.product.emoji, qty: $0.qty, unitWei: $0.product.priceWei) }
-        if let c = customAmount { orderLines.append(OrderLine(name: "Custom amount", emoji: "✏️", qty: 1, unitWei: String(c))) }
-        pendingOrders[req.invoiceId.hex.lowercased()] = (orderLines, tip)
+        let number = nextOrderNumber
+        nextOrderNumber += 1
+        lastOrderNumber = number
+
+        var orderLines = cart.map {
+            OrderLine(name: $0.title, emoji: "", qty: $0.qty, unitWei: String($0.unit), options: $0.detail, isDrink: $0.product.category.isDrink)
+        }
+        if let c = customAmount { orderLines.append(OrderLine(name: "Custom amount", emoji: "", qty: 1, unitWei: String(c))) }
+
+        // Split total into N parts; the last part absorbs rounding.
+        let n = max(1, splitCount)
+        let share = total / Wei(n)
+        parts = (0..<n).map { i in
+            let amt = i == n - 1 ? total - share * Wei(n - 1) : share
+            let m = n > 1 ? "Order #\(number) · part \(i + 1)/\(n)" : "#\(number) " + memo
+            return PaymentRequest(merchant: payout, amount: amt, memo: m, merchantName: merchantName)
+        }
+        for (i, r) in parts.enumerated() {
+            pendingOrders[r.invoiceId.hex.lowercased()] = (i == 0 ? orderLines : [], i == 0 ? tip : 0, number, n > 1 ? "\(i + 1)/\(n)" : nil)
+        }
+        paidParts = []
         stateMs = [:]
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.86)) { charge = .awaiting(req) }
-        beacon.publish(req)
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.86)) { charge = .awaiting(parts[0]) }
+        beacon.publish(parts[0])
     }
+
+    var currentPartIndex: Int { paidParts.count }
 
     func cancelCharge() {
         beacon.publish(nil)
+        parts = []; paidParts = []
         withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) { charge = .idle }
     }
 
     func newSale() {
         beacon.publish(nil)
+        parts = []; paidParts = []
         clear()
         withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) { charge = .idle }
+    }
+
+    private func completeOrder(number: Int, lines: [OrderLine], payer: String) {
+        // stock
+        for l in lines {
+            if let i = catalog.firstIndex(where: { $0.name == l.name }), let s = catalog[i].stock { catalog[i].stock = max(0, s - l.qty) }
+        }
+        // kitchen
+        if !lines.isEmpty {
+            tickets.insert(KitchenTicket(number: number, lines: lines, payer: payer, createdAt: Date(), status: .new), at: 0)
+            saveTickets()
+        }
+    }
+
+    func advance(_ t: KitchenTicket) {
+        guard let i = tickets.firstIndex(of: t) else { return }
+        let all = TicketStatus.allCases
+        let next = all[min(all.count - 1, all.firstIndex(of: t.status)! + 1)]
+        withAnimation(.snappy) { tickets[i].status = next }
+        saveTickets()
     }
 
     // MARK: Chain stream
@@ -260,23 +400,37 @@ final class POSStore: ObservableObject {
         firstSeen[ev.invoiceId] = first
         let elapsed = now.timeIntervalSince(first)
 
+        var isNew = false
         if let i = sales.firstIndex(where: { $0.id == ev.invoiceId }) {
             for s in CommitState.timeline where s.rank <= state.rank && sales[i].states[s.rawValue] == nil {
                 sales[i].states[s.rawValue] = elapsed
             }
         } else {
+            isNew = true
             var states: [String: Double] = [:]
             for s in CommitState.timeline where s.rank <= state.rank { states[s.rawValue] = elapsed }
             let order = pendingOrders.removeValue(forKey: ev.invoiceId)
-            let sale = Sale(event: ev, date: now, states: states, lines: order?.lines, tipWei: order.map { String($0.tip) })
+            let sale = Sale(event: ev, date: now, states: states, lines: order?.lines, tipWei: order.map { String($0.tip) },
+                            orderNumber: order?.number, splitPart: order?.part)
             withAnimation(.snappy) { sales.insert(sale, at: 0) }
         }
         saveSales()
 
-        if case .awaiting(let req) = charge, req.invoiceId.hex.lowercased() == ev.invoiceId {
-            beacon.publish(nil)
-            NSSound(named: "Glass")?.play()
-            withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) { charge = .paid(req, ev) }
+        // Active charge: advance through split parts, then show approval.
+        if isNew, case .awaiting(let req) = charge, req.invoiceId.hex.lowercased() == ev.invoiceId {
+            paidParts.append(ev)
+            NSSound(named: paidParts.count == parts.count ? "Glass" : "Tink")?.play()
+            if paidParts.count < parts.count {
+                let next = parts[paidParts.count]
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) { charge = .awaiting(next) }
+                beacon.publish(next)
+            } else {
+                beacon.publish(nil)
+                let firstLines = sales.first { $0.orderNumber == lastOrderNumber && !($0.lines ?? []).isEmpty }?.lines ?? []
+                if let n = lastOrderNumber { completeOrder(number: n, lines: firstLines, payer: ev.payer) }
+                stateMs = [:]
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) { charge = .paid(req, ev) }
+            }
         }
         if case .paid(let req, _) = charge, req.invoiceId.hex.lowercased() == ev.invoiceId {
             for s in CommitState.timeline where s.rank <= state.rank && stateMs[s] == nil {
@@ -289,7 +443,10 @@ final class POSStore: ObservableObject {
 
     var grossVolume: Wei { sales.reduce(0) { $0 + $1.event.amount } }
     var tipsTotal: Wei { sales.reduce(0) { $0 + $1.tip } }
-    var avgTicket: Wei { sales.isEmpty ? 0 : grossVolume / Wei(sales.count) }
+    var avgTicket: Wei {
+        let orders = Set(sales.map { $0.orderNumber.map(String.init) ?? $0.id }).count
+        return orders == 0 ? 0 : grossVolume / Wei(orders)
+    }
     var avgFinalityMs: Int? {
         let f = sales.compactMap(\.finalizedMs).filter { $0 > 0 }
         return f.isEmpty ? nil : f.reduce(0, +) / f.count
@@ -302,22 +459,40 @@ final class POSStore: ObservableObject {
             .sorted { $0.total > $1.total }
     }
 
+    func customer(_ payer: String) -> Customer? { customers.first { $0.address.lowercased() == payer.lowercased() } }
+
     var topProducts: [(name: String, emoji: String, qty: Int, revenue: Double)] {
-        var agg: [String: (String, Int, Double)] = [:]
+        var agg: [String: (Int, Double)] = [:]
         for l in sales.flatMap({ $0.lines ?? [] }) {
-            let cur = agg[l.name] ?? (l.emoji, 0, 0)
-            agg[l.name] = (l.emoji, cur.1 + l.qty, cur.2 + Double(l.unit * Wei(l.qty)) / 1e18)
+            let cur = agg[l.name] ?? (0, 0)
+            agg[l.name] = (cur.0 + l.qty, cur.1 + Double(l.unit * Wei(l.qty)) / 1e18)
         }
-        return agg.map { ($0.key, $0.value.0, $0.value.1, $0.value.2) }.sorted { $0.revenue > $1.revenue }
+        return agg.map { ($0.key, "", $0.value.0, $0.value.1) }.sorted { $0.revenue > $1.revenue }
+    }
+
+    /// CSV of all transactions.
+    func exportCSV() -> String {
+        let f = ISO8601DateFormatter()
+        func esc(_ s: String) -> String { "\"" + s.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }
+        var out = "Date,Order,Part,Items,Customer,Amount (MON),Tip (MON),Status,Finality (ms),Block,Transaction\n"
+        for s in sales {
+            out += [f.string(from: s.date), s.orderNumber.map(String.init) ?? "", s.splitPart ?? "", esc(s.event.memo), s.event.payer,
+                    MON.format(s.event.amount, maxFraction: 18), MON.format(s.tip, maxFraction: 18), s.latestState.rawValue,
+                    s.finalizedMs.map(String.init) ?? "", String(s.event.blockNumber), s.event.txHash].joined(separator: ",") + "\n"
+        }
+        return out
     }
 
     // MARK: Persistence
 
     private func saveSales() {
-        if let d = try? JSONEncoder().encode(Array(sales.prefix(500))) { UserDefaults.standard.set(d, forKey: "pos.sales") }
+        if let d = try? JSONEncoder().encode(Array(sales.prefix(1000))) { UserDefaults.standard.set(d, forKey: "pos.sales") }
+    }
+    private func saveTickets() {
+        if let d = try? JSONEncoder().encode(Array(tickets.prefix(200))) { UserDefaults.standard.set(d, forKey: "pos.tickets") }
     }
     private func saveCatalog() {
         if let d = try? JSONEncoder().encode(catalog) { UserDefaults.standard.set(d, forKey: "pos.catalog") }
     }
-    func resetSales() { sales = []; saveSales() }
+    func resetSales() { sales = []; tickets = []; saveSales(); saveTickets() }
 }

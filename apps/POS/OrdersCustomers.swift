@@ -21,13 +21,15 @@ struct OrdersView: View {
                     Image(systemName: "magnifyingglass").font(.system(size: 11)).foregroundStyle(T.faint)
                     TextField("Search items, wallets, transactions", text: $query).textFieldStyle(.plain).font(T.sans(13))
                     Spacer()
-                    Text("\(store.sales.count) orders").font(T.mono(12)).foregroundStyle(T.faint)
+                    Text("\(store.sales.count) payments").font(T.mono(12)).foregroundStyle(T.faint)
+                    Button("Export CSV") { exportCSV() }.buttonStyle(QuietAction())
                 }
                 .padding(.horizontal, 28).frame(height: 44)
                 Rule()
 
                 HStack(spacing: 0) {
                     Text("Time").frame(width: 92, alignment: .leading)
+                    Text("Order").frame(width: 70, alignment: .leading)
                     Text("Items").frame(maxWidth: .infinity, alignment: .leading)
                     Text("Customer").frame(width: 120, alignment: .leading)
                     Text("Status").frame(width: 100, alignment: .leading)
@@ -68,6 +70,15 @@ struct OrdersView: View {
     }
 }
 
+extension OrdersView {
+    func exportCSV() {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "tapnad-transactions-\(Date.now.formatted(.iso8601.year().month().day())).csv"
+        panel.allowedContentTypes = [.commaSeparatedText]
+        if panel.runModal() == .OK, let url = panel.url { try? store.exportCSV().write(to: url, atomically: true, encoding: .utf8) }
+    }
+}
+
 struct OrderRow: View {
     let sale: Sale
     let selected: Bool
@@ -77,6 +88,8 @@ struct OrderRow: View {
         HStack(spacing: 0) {
             Text(sale.date.formatted(date: .omitted, time: .shortened)).font(T.mono(12.5)).foregroundStyle(T.dim)
                 .frame(width: 92, alignment: .leading)
+            Text(sale.orderNumber.map { "#\($0)" + (sale.splitPart.map { " · \($0)" } ?? "") } ?? "—").font(T.mono(12.5)).foregroundStyle(T.dim)
+                .frame(width: 70, alignment: .leading)
             Text(sale.event.memo.isEmpty ? "Payment" : sale.event.memo).font(T.sans(13)).lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Text(shortAddress(sale.event.payer)).font(T.mono(12.5)).foregroundStyle(T.dim)
@@ -175,6 +188,7 @@ struct CustomersView: View {
                 Text("Wallet").frame(maxWidth: .infinity, alignment: .leading)
                 Text("Tier").frame(width: 90, alignment: .leading)
                 Text("Visits").frame(width: 70, alignment: .trailing)
+                Text("Stamps").frame(width: 90, alignment: .trailing)
                 Text("Usual").frame(width: 170, alignment: .leading).padding(.leading, 28)
                 Text("Last seen").frame(width: 110, alignment: .leading)
                 Text("Spent").frame(width: 90, alignment: .trailing)
@@ -199,6 +213,8 @@ struct CustomersView: View {
                             }
                             .frame(width: 90, alignment: .leading)
                             Text("\(c.visits)").font(T.mono(12.5)).frame(width: 70, alignment: .trailing)
+                            Text("\(c.stamps)/\(LoyaltyProgram.stampsForReward)" + (c.rewardsEarned > 0 ? " +\(c.rewardsEarned)" : ""))
+                                .font(T.mono(12.5)).frame(width: 90, alignment: .trailing)
                             Text(c.favorite ?? "—").font(T.sans(12.5)).foregroundStyle(T.dim).lineLimit(1)
                                 .frame(width: 170, alignment: .leading).padding(.leading, 28)
                             Text(c.lastSeen.formatted(.relative(presentation: .named))).font(T.sans(12.5)).foregroundStyle(T.dim)
