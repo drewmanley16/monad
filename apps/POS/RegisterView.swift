@@ -95,25 +95,28 @@ struct ItemTile: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: 0) {
-                ZStack(alignment: .topTrailing) {
-                    Rectangle().fill(T.tile)
-                    if let img = ItemPicture.photo(for: product.name) {
-                        Image(nsImage: img).resizable().scaledToFill().grayscale(1)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity).clipped()
-                    } else {
-                        Image(systemName: ItemPicture.symbol(for: product))
-                            .font(.system(size: 40, weight: .light))
-                            .foregroundStyle(Color(red: 0.32, green: 0.32, blue: 0.32))
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                Color.clear
+                    .aspectRatio(1.25, contentMode: .fit)
+                    .overlay {
+                        ZStack {
+                            T.tile
+                            if let img = ItemPicture.photo(for: product.name) {
+                                Image(nsImage: img).resizable().scaledToFill().grayscale(1)
+                            } else {
+                                Image(systemName: ItemPicture.symbol(for: product))
+                                    .font(.system(size: 40, weight: .light))
+                                    .foregroundStyle(Color(red: 0.32, green: 0.32, blue: 0.32))
+                            }
+                        }
                     }
-                    if qty > 0 {
-                        Text("\(qty)").font(T.mono(13, .semibold)).foregroundStyle(.white)
-                            .frame(minWidth: 24, minHeight: 24).background(T.text, in: Circle())
-                            .padding(8)
+                    .overlay(alignment: .topTrailing) {
+                        if qty > 0 {
+                            Text("\(qty)").font(T.mono(13, .semibold)).foregroundStyle(.white)
+                                .frame(minWidth: 24, minHeight: 24).background(T.text, in: Circle())
+                                .padding(8)
+                        }
                     }
-                }
-                .aspectRatio(1.25, contentMode: .fit)
-                .clipped()
+                    .clipped()
                 VStack(alignment: .leading, spacing: 2) {
                     Text(product.name).font(T.sans(14, .medium)).lineLimit(1)
                     Text("\(MON.format(product.price, maxFraction: 4)) MON").font(T.mono(13)).foregroundStyle(T.dim)
