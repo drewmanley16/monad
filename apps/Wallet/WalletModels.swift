@@ -114,6 +114,7 @@ struct PaymentRecord: Codable, Identifiable, Hashable {
     var category: ExpenseCategory?
     var note: String?
     var feeWei: String?
+    var incoming: Bool?
 
     var amount: Wei { Wei(amountWei) ?? 0 }
     var fee: Wei { feeWei.flatMap { Wei($0) } ?? 0 }

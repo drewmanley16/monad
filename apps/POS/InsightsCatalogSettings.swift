@@ -5,6 +5,7 @@ import Charts
 
 struct InsightsView: View {
     @EnvironmentObject var store: POSStore
+    @State private var showClose = false
 
     var body: some View {
         ScrollView {
@@ -15,9 +16,13 @@ struct InsightsView: View {
                     Metric(label: "Avg. ticket", value: MON.format(store.avgTicket, maxFraction: 3))
                     Metric(label: "Tips", value: MON.format(store.tipsTotal, maxFraction: 3))
                     Metric(label: "Avg. finality", value: store.avgFinalityMs.map { "\($0)ms" } ?? "—")
-                    Spacer()
                 }
-                .padding(.horizontal, 28).padding(.vertical, 22)
+                .padding(.horizontal, 28).padding(.top, 22)
+                HStack {
+                    Spacer()
+                    Button("Close out day…") { showClose = true }.buttonStyle(QuietAction())
+                }
+                .padding(.horizontal, 28).padding(.vertical, 12)
                 Rule()
 
                 HStack(alignment: .top, spacing: 0) {
@@ -35,6 +40,7 @@ struct InsightsView: View {
             }
         }
         .scrollIndicators(.never)
+        .sheet(isPresented: $showClose) { CloseOutSheet().environmentObject(store) }
     }
 
     private func section<C: View>(_ title: String, @ViewBuilder _ c: () -> C) -> some View {
@@ -233,6 +239,23 @@ struct POSSettingsView: View {
                         TextField("0", value: $store.taxPercent, format: .number).textFieldStyle(.plain).font(T.mono(13)).frame(width: 80)
                     }
                     Text("Added on top of the discounted subtotal at checkout.").font(T.sans(12)).foregroundStyle(T.faint)
+                }
+                block("Prices") {
+                    row("USD / MON") {
+                        TextField("0", value: $store.usdRate, format: .number).textFieldStyle(.plain).font(T.mono(13)).frame(width: 80)
+                    }
+                    Text("Display-only conversion. Leave at 0 to hide USD.").font(T.sans(12)).foregroundStyle(T.faint)
+                }
+                block("Refund wallet") {
+                    KV(k: "Address", v: store.refundAccount?.address ?? "—")
+                    KV(k: "Balance", v: store.refundBalance.map { "\(MON.format($0, maxFraction: 4)) MON" } ?? "—")
+                    HStack {
+                        Button("Copy address") {
+                            NSPasteboard.general.clearContents(); NSPasteboard.general.setString(store.refundAccount?.address ?? "", forType: .string)
+                        }.buttonStyle(QuietAction())
+                        Button("Refresh") { Task { await store.refreshRefundBalance() } }.buttonStyle(QuietAction())
+                    }
+                    Text("Refunds are sent from this wallet back to the customer through MonadPay. Fund it with a little MON.").font(T.sans(12)).foregroundStyle(T.faint)
                 }
                 block("Payouts") {
                     row("Address") {

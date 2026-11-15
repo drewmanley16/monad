@@ -21,9 +21,12 @@
 		4FC021B5CC9949C696CA6808 /* WalletServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52C693CD4C5D7E3465A4FB77 /* WalletServices.swift */; };
 		54BD9D2D7C9561658AF201FF /* everything-bagel.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 566EFF8A93E04029A91EA655 /* everything-bagel.jpg */; };
 		578599CD0ACC2C09D43B3EDF /* cortado.jpg in Resources */ = {isa = PBXBuildFile; fileRef = D7814085DDF9594489C7FE7B /* cortado.jpg */; };
+		64137709636F943E3E6AD862 /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = D1A4688CDCC71B6D33311D24 /* CryptoSwift */; };
 		646B5AE80E25D73182B5D921 /* WalletStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF57086CDC5AF4FE60259D7D /* WalletStore.swift */; };
 		6728A4E771D9299BFF6A09CD /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = AFFE4315C88D2ACF941A2B0A /* CryptoSwift */; };
 		69E4E2717413A4C2B09BC4AD /* TapBeacon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 736034F688BBBC1300316908 /* TapBeacon.swift */; };
+		6EBDEEC1CE51A9A00471DCFF /* P256K in Frameworks */ = {isa = PBXBuildFile; productRef = 29BA0F26F4E6B213B97CB64B /* P256K */; };
+		7745D9483A919E565773FE7B /* EthAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 970F27422B5E5B2956D1233C /* EthAccount.swift */; };
 		79D68A176F2707054DEF3A06 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43AA7AFA14CF1AC0996DABE0 /* HomeView.swift */; };
 		81C6728E77AEC9BD5DF4CB21 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0BB27A21305D9E05B3CED9 /* InsightsView.swift */; };
 		89A227AC0A5F10A288A2A408 /* ReceiveSettingsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = E149663AE63A6F2235DBA044 /* ReceiveSettingsViews.swift */; };
@@ -34,13 +37,14 @@
 		99D107E5F2C4580923147456 /* Design.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDCF31FA01A5722D91C28EE4 /* Design.swift */; };
 		9B184FD787AEE2811AB30CE3 /* POSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CF8BD126CA9ACA08C78AA6C /* POSApp.swift */; };
 		9F2302CE71C5F7325D77E0CC /* croissant.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 120538DECEC9B9F4E1685269 /* croissant.jpg */; };
+		A245E1051898FAF88E2C1F82 /* Extras.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66D6AF440ED92A3F658738F6 /* Extras.swift */; };
 		B425B44D1B5EEFED22F079B6 /* Core.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4112F284972684AE4BABDF /* Core.swift */; };
 		B609110DF144BDFCDD035482 /* chai.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 648C1ACB1F9D1F4CE63E5078 /* chai.jpg */; };
 		C7A8DCB19DB33AFB086DCC45 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A6FD47EC7D72BD45AAAFA9 /* RegisterView.swift */; };
 		CBE0A5E1C8805278174EF0EA /* KitchenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA6676A96AB0AC571014E4CB /* KitchenView.swift */; };
 		D05C485767EAF51ECA8DEB79 /* avo-toast.jpg in Resources */ = {isa = PBXBuildFile; fileRef = B5B1CCB47DA5E714B5BF2664 /* avo-toast.jpg */; };
 		E63E336D4586567E6460AC9E /* WalletModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 688D0EAAF05E5BF3D811D756 /* WalletModels.swift */; };
-		E7952C8CA2EABCC1BF56DF71 /* EthAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DA65028C79102D7683FBAB1 /* EthAccount.swift */; };
+		E9B34E943F0D27CCF6ABC473 /* EthAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 970F27422B5E5B2956D1233C /* EthAccount.swift */; };
 		EE0D0BA0032DED5613007A8D /* matcha-latte.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 4F860C72BAF6FA6FDC346987 /* matcha-latte.jpg */; };
 		F90AA0B5CAAFA1F3469C8DF6 /* nad-tee.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 120BF93C0F2E551E55D99D64 /* nad-tee.jpg */; };
 		FBEFDBD3FD44C548DF17AE01 /* P256K in Frameworks */ = {isa = PBXBuildFile; productRef = 1FD7FCD5BE9D5FA0AE9D3F39 /* P256K */; };
@@ -51,7 +55,6 @@
 		0E61218D0772FA04DB50DBE1 /* Wallet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Wallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		120538DECEC9B9F4E1685269 /* croissant.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = croissant.jpg; sourceTree = "<group>"; };
 		120BF93C0F2E551E55D99D64 /* nad-tee.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "nad-tee.jpg"; sourceTree = "<group>"; };
-		1DA65028C79102D7683FBAB1 /* EthAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EthAccount.swift; sourceTree = "<group>"; };
 		43AA7AFA14CF1AC0996DABE0 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		4B4112F284972684AE4BABDF /* Core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core.swift; sourceTree = "<group>"; };
 		4E736ABEA07A11B3E48BE8B9 /* ActivityViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityViews.swift; sourceTree = "<group>"; };
@@ -60,6 +63,7 @@
 		566EFF8A93E04029A91EA655 /* everything-bagel.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "everything-bagel.jpg"; sourceTree = "<group>"; };
 		5A71D92BAB0DE56431243938 /* TapToPayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TapToPayView.swift; sourceTree = "<group>"; };
 		648C1ACB1F9D1F4CE63E5078 /* chai.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = chai.jpg; sourceTree = "<group>"; };
+		66D6AF440ED92A3F658738F6 /* Extras.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extras.swift; sourceTree = "<group>"; };
 		688D0EAAF05E5BF3D811D756 /* WalletModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletModels.swift; sourceTree = "<group>"; };
 		6987F8170B26850FC2114785 /* sparkling-water.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "sparkling-water.jpg"; sourceTree = "<group>"; };
 		736034F688BBBC1300316908 /* TapBeacon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TapBeacon.swift; sourceTree = "<group>"; };
@@ -70,6 +74,7 @@
 		8CF8BD126CA9ACA08C78AA6C /* POSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = POSApp.swift; sourceTree = "<group>"; };
 		9035DE3DCEE501061D4073B8 /* espresso.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = espresso.jpg; sourceTree = "<group>"; };
 		954A4CFB32B258B41A2C1EB4 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		970F27422B5E5B2956D1233C /* EthAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EthAccount.swift; sourceTree = "<group>"; };
 		9E6BE7765E41F53C102CB371 /* POS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = POS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABD2AB47A91482BD19B92459 /* cold-brew.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "cold-brew.jpg"; sourceTree = "<group>"; };
 		B5B1CCB47DA5E714B5BF2664 /* avo-toast.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "avo-toast.jpg"; sourceTree = "<group>"; };
@@ -87,6 +92,15 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		7845B5DB08193D80B9C06A13 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6EBDEEC1CE51A9A00471DCFF /* P256K in Frameworks */,
+				64137709636F943E3E6AD862 /* CryptoSwift in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BE364CDEF31FC45261C68182 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -121,6 +135,7 @@
 		2FA90131DECCCDD151103592 /* POS */ = {
 			isa = PBXGroup;
 			children = (
+				66D6AF440ED92A3F658738F6 /* Extras.swift */,
 				B6700ED19BFF085244D8ADAE /* Info.plist */,
 				78ACADF819E2842747C28D3A /* InsightsCatalogSettings.swift */,
 				CA6676A96AB0AC571014E4CB /* KitchenView.swift */,
@@ -139,7 +154,6 @@
 			isa = PBXGroup;
 			children = (
 				4E736ABEA07A11B3E48BE8B9 /* ActivityViews.swift */,
-				1DA65028C79102D7683FBAB1 /* EthAccount.swift */,
 				43AA7AFA14CF1AC0996DABE0 /* HomeView.swift */,
 				0758C9C9C7F586989ED5DD94 /* Info.plist */,
 				CC0BB27A21305D9E05B3CED9 /* InsightsView.swift */,
@@ -158,6 +172,7 @@
 			children = (
 				4B4112F284972684AE4BABDF /* Core.swift */,
 				FDCF31FA01A5722D91C28EE4 /* Design.swift */,
+				970F27422B5E5B2956D1233C /* EthAccount.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -191,6 +206,7 @@
 			buildPhases = (
 				1E792EDA2B731F7ACC9789C5 /* Sources */,
 				3E789D2DA9CB06CA00CAF756 /* Resources */,
+				7845B5DB08193D80B9C06A13 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -198,6 +214,8 @@
 			);
 			name = POS;
 			packageProductDependencies = (
+				29BA0F26F4E6B213B97CB64B /* P256K */,
+				D1A4688CDCC71B6D33311D24 /* CryptoSwift */,
 			);
 			productName = POS;
 			productReference = 9E6BE7765E41F53C102CB371 /* POS.app */;
@@ -296,6 +314,8 @@
 			files = (
 				92A1C8046F1005D2B96B266C /* Core.swift in Sources */,
 				96F927A3FD7540EF8280B10E /* Design.swift in Sources */,
+				7745D9483A919E565773FE7B /* EthAccount.swift in Sources */,
+				A245E1051898FAF88E2C1F82 /* Extras.swift in Sources */,
 				0741182D7D547AD78B998666 /* InsightsCatalogSettings.swift in Sources */,
 				CBE0A5E1C8805278174EF0EA /* KitchenView.swift in Sources */,
 				2D41EEB129384B56FC173DA0 /* OrdersCustomers.swift in Sources */,
@@ -314,7 +334,7 @@
 				92FDF7C3BB26B6C2B366CB12 /* ActivityViews.swift in Sources */,
 				B425B44D1B5EEFED22F079B6 /* Core.swift in Sources */,
 				99D107E5F2C4580923147456 /* Design.swift in Sources */,
-				E7952C8CA2EABCC1BF56DF71 /* EthAccount.swift in Sources */,
+				E9B34E943F0D27CCF6ABC473 /* EthAccount.swift in Sources */,
 				79D68A176F2707054DEF3A06 /* HomeView.swift in Sources */,
 				81C6728E77AEC9BD5DF4CB21 /* InsightsView.swift in Sources */,
 				89A227AC0A5F10A288A2A408 /* ReceiveSettingsViews.swift in Sources */,
@@ -579,7 +599,17 @@
 			package = 3C6DF8DC7C2ED93438B5787E /* XCRemoteSwiftPackageReference "swift-secp256k1" */;
 			productName = P256K;
 		};
+		29BA0F26F4E6B213B97CB64B /* P256K */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3C6DF8DC7C2ED93438B5787E /* XCRemoteSwiftPackageReference "swift-secp256k1" */;
+			productName = P256K;
+		};
 		AFFE4315C88D2ACF941A2B0A /* CryptoSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 33105F85745BA6F94868D315 /* XCRemoteSwiftPackageReference "CryptoSwift" */;
+			productName = CryptoSwift;
+		};
+		D1A4688CDCC71B6D33311D24 /* CryptoSwift */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 33105F85745BA6F94868D315 /* XCRemoteSwiftPackageReference "CryptoSwift" */;
 			productName = CryptoSwift;

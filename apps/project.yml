@@ -49,6 +49,10 @@ targets:
     platform: macOS
     deploymentTarget: "15.0"
     sources: [POS, Shared]
+    dependencies:
+      - package: P256K
+        product: P256K
+      - package: CryptoSwift
     info:
       path: POS/Info.plist
       properties:
@@ -59,6 +63,9 @@ targets:
         NSLocalNetworkUsageDescription: Tapnad POS advertises charges to nearby phones.
         NSBonjourServices: [_tapnad._tcp]
         LSApplicationCategoryType: public.app-category.business
+        CFBundleURLTypes:
+          - CFBundleURLName: com.drewmanley.tapnad.pos
+            CFBundleURLSchemes: [tapnadpos]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.drewmanley.tapnad.pos

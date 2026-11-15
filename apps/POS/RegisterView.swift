@@ -329,6 +329,7 @@ struct TicketView: View {
                 if store.taxPercent > 0 { KV(k: "Tax \(store.taxPercent.formatted())%", v: "\(MON.format(store.tax, maxFraction: 4)) MON") }
                 if store.tipPercent > 0 { KV(k: "Tip", v: "\(MON.format(store.tip, maxFraction: 4)) MON") }
                 KV(k: "Total", v: "\(MON.format(store.total, maxFraction: 4)) MON", strong: true)
+                if let usd = store.usd(store.total), store.total > 0 { KV(k: "", v: "≈ \(usd)") }
                 if store.splitCount > 1 && store.total > 0 {
                     KV(k: "Each of \(store.splitCount)", v: "≈ \(MON.format(store.total / Wei(store.splitCount), maxFraction: 4)) MON")
                 }
@@ -417,6 +418,12 @@ struct ChargeScreen: View {
                 Text(isSplit ? "Payment \(store.currentPartIndex + 1) of \(store.parts.count)" : "Total").font(T.sans(16)).foregroundStyle(T.dim)
                 Text("\(MON.format(req.amount, maxFraction: 4)) MON").font(T.mono(72, .semibold))
                     .contentTransition(.numericText())
+                if let usd = store.usd(req.amount) { Text("≈ \(usd)").font(T.mono(16)).foregroundStyle(T.dim) }
+                if let note = store.rewardNotice {
+                    Label(note, systemImage: "gift").font(T.sans(14, .medium)).padding(.top, 8)
+                } else if let who = store.identifiedPayer {
+                    Text("Phone connected · \(shortAddress(who))").font(T.mono(13)).foregroundStyle(T.dim).padding(.top, 8)
+                }
             }
             .id(req.id)
             .transition(.push(from: .trailing))
@@ -508,6 +515,7 @@ struct ChargeScreen: View {
                 .animation(.default, value: store.stateMs)
 
                 loyalty(ev.payer).frame(width: 260).card(padding: 18)
+                SpeedCompare(finalMs: store.stateMs[.finalized], proposedMs: store.stateMs[.proposed]).frame(width: 260).card(padding: 18)
             }
             .padding(.top, 28)
 

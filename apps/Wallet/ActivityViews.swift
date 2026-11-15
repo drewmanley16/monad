@@ -115,7 +115,7 @@ struct TransactionDetailView: View {
                     AddressAvatar(seed: rec.merchant ?? rec.merchantName, label: rec.merchantName, size: 64)
                     Text(rec.merchantName).font(.title3.weight(.semibold))
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text("−" + MON.format(rec.amount, maxFraction: 6)).font(.system(size: 44, weight: .semibold, design: .rounded))
+                        Text(((rec.incoming ?? false) ? "+" : "−") + MON.format(rec.amount, maxFraction: 6)).font(.system(size: 44, weight: .semibold, design: .rounded))
                         Text("MON").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
                     }
                     HStack(spacing: 6) {

@@ -12,9 +12,19 @@ struct POSApp: App {
                 .preferredColorScheme(.light)
                 .tint(T.blue)
                 .frame(minWidth: 1100, minHeight: 720)
+                .onOpenURL { store.handle(url: $0) }
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1320, height: 840)
+
+        WindowGroup("Customer Display", id: "customer") {
+            CustomerDisplay()
+                .environmentObject(store)
+                .preferredColorScheme(.light)
+                .frame(minWidth: 640, minHeight: 480)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 900, height: 640)
     }
 }
 
@@ -71,7 +81,9 @@ struct RootView: View {
 
 struct TopBar: View {
     @EnvironmentObject var store: POSStore
+    @Environment(\.openWindow) private var openWindow
     @Binding var section: NavSection
+    @State private var showHow = false
 
     var body: some View {
         HStack(spacing: 4) {
@@ -102,11 +114,18 @@ struct TopBar: View {
                     .contentTransition(.numericText(value: Double(store.blockNumber)))
             }
             .animation(.default, value: store.blockNumber)
+            Button { openWindow(id: "customer") } label: { Image(systemName: "display").frame(width: 30, height: 30) }
+                .buttonStyle(.plain).help("Open customer display")
+                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(T.rule))
+                .padding(.leading, 12)
+            Button { showHow = true } label: { Image(systemName: "questionmark").frame(width: 30, height: 30) }
+                .buttonStyle(.plain).help("How Tapnad works")
+                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(T.rule))
             Text(store.merchantName).font(T.sans(13, .medium))
                 .padding(.horizontal, 10).frame(height: 30)
                 .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(T.rule))
-                .padding(.leading, 12)
         }
+        .sheet(isPresented: $showHow) { HowItWorks() }
         .padding(.leading, 84).padding(.trailing, 20)
         .frame(height: 52)
         .background(T.surface)

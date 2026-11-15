@@ -195,7 +195,8 @@ struct ActivityRow: View {
                 .font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer()
-            Text("−\(MON.format(rec.amount)) MON").font(.subheadline.monospacedDigit().weight(.medium))
+            Text("\((rec.incoming ?? false) ? "+" : "−")\(MON.format(rec.amount)) MON").font(.subheadline.monospacedDigit().weight(.medium))
+                .foregroundStyle((rec.incoming ?? false) ? Color.green : .primary)
         }
         .padding(.horizontal, 14).padding(.vertical, 12)
         .contentShape(Rectangle())

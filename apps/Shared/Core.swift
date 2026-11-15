@@ -189,6 +189,8 @@ enum TapLink {
     static let bonjourType = "_tapnad._tcp"
     static let serviceUUID = "6E1A0001-5A1D-4B3C-9E1F-7A9D4D2C0001"
     static let requestCharUUID = "6E1A0002-5A1D-4B3C-9E1F-7A9D4D2C0001"
+    /// Phone writes its wallet address here before reading the request (lets the POS apply rewards).
+    static let identifyCharUUID = "6E1A0003-5A1D-4B3C-9E1F-7A9D4D2C0001"
     /// RSSI at which a phone counts as "tapped" on the Mac.
     static let tapRSSI = -52
 }

@@ -18,6 +18,9 @@ final class WalletStore: ObservableObject {
     @Published var stateMs: [CommitState: Int] = [:]
     @Published var signedMs: Int?
     @Published var txHash: String?
+    @Published var tipPercent = 0
+
+    private var incoming: MonadStream?
 
     enum Phase: Equatable { case scanning, confirm, authorizing, sending, approved, failed(String) }
 
@@ -41,6 +44,7 @@ final class WalletStore: ObservableObject {
         }
         if selectedCardId == nil || !cards.contains(where: { $0.id == selectedCardId }) { selectedCardId = cards.first?.id }
         defaults.set(cards.first?.address, forKey: "tapnad.address")   // for tooling (simctl funding)
+        listenForIncoming()
     }
 
     // MARK: Cards
@@ -65,6 +69,7 @@ final class WalletStore: ObservableObject {
         accounts[card.id] = acct
         withAnimation(.snappy) { cards.append(card) }
         save()
+        listenForIncoming()
         Task { await refresh() }
         return card
     }
@@ -99,6 +104,29 @@ final class WalletStore: ObservableObject {
         }
     }
 
+    // MARK: Incoming (refunds sent to any of our cards via MonadPay)
+
+    func listenForIncoming() {
+        incoming?.stop()
+        let s = MonadStream()
+        incoming = s
+        for card in cards {
+            s.subscribe(["monadLogs", ["address": Chain.monadPay, "topics": [MonadPayABI.paidTopic, MonadPayABI.topic(address: card.address)]]]) { [weak self] log in
+                guard let self, let ev = PaidEvent(log: log), !self.history.contains(where: { $0.txHash == ev.txHash }) else { return }
+                var rec = PaymentRecord(txHash: ev.txHash, merchantName: ev.memo.hasPrefix("Refund") ? "Refund" : "Received",
+                                        merchant: ev.payer, memo: ev.memo, amountWei: ev.amountWei, date: Date())
+                rec.cardId = card.id
+                rec.incoming = true
+                rec.category = .other
+                withAnimation(.snappy) { self.history.insert(rec, at: 0) }
+                Haptics.success()
+                self.save()
+                Task { await self.refresh() }
+            }
+        }
+        s.connect()
+    }
+
     // MARK: Ledger
 
     func card(for rec: PaymentRecord) -> CardAccount? { cards.first { $0.id == rec.cardId } }
@@ -116,7 +144,9 @@ final class WalletStore: ObservableObject {
         return history.filter { cal.isDate($0.date, equalTo: date, toGranularity: .month) }
     }
 
-    func spend(_ recs: [PaymentRecord]) -> Double { recs.reduce(0) { $0 + $1.amount.monDouble } }
+    func spend(_ recs: [PaymentRecord]) -> Double {
+        recs.reduce(0) { $0 + (($1.incoming ?? false) ? -$1.amount.monDouble : $1.amount.monDouble) }
+    }
 
     /// CSV for expense reports.
     func exportCSV(_ recs: [PaymentRecord]) -> URL {
@@ -140,6 +170,7 @@ final class WalletStore: ObservableObject {
     func beginTap() {
         stream?.stop(); stream = nil
         request = nil
+        tipPercent = 0
         phase = .scanning
         stateMs = [:]
         signedMs = nil
@@ -157,15 +188,22 @@ final class WalletStore: ObservableObject {
         Task { await refresh() }
     }
 
+    /// Request amount plus any tip the customer chose on the phone.
+    var payAmount: Wei {
+        guard let r = request else { return 0 }
+        return r.amount + r.amount * Wei(tipPercent) / 100
+    }
+
     var insufficient: Bool {
-        guard let r = request, let b = balance else { return false }
-        return b < r.amount
+        guard request != nil, let b = balance else { return false }
+        return b < payAmount
     }
 
     func pay() async {
         guard let req = request, let card = selectedCard, let acct = accounts[card.id] else { return }
         phase = .authorizing
-        guard await Biometrics.authenticate("Pay \(MON.format(req.amount)) MON to \(req.merchantName)") else {
+        let amount = payAmount
+        guard await Biometrics.authenticate("Pay \(MON.format(amount)) MON to \(req.merchantName)") else {
             phase = .confirm; return
         }
         withAnimation { phase = .sending }
@@ -173,18 +211,18 @@ final class WalletStore: ObservableObject {
             let data = MonadPayABI.encodePay(merchant: req.merchant, invoiceId: req.invoiceId, memo: req.memo)
             async let nonceF = MonadRPC.shared.nonce(acct.address)
             async let priceF = MonadRPC.shared.gasPrice()
-            async let gasF = MonadRPC.shared.estimateGas(from: acct.address, to: Chain.monadPay, value: req.amount, data: data)
+            async let gasF = MonadRPC.shared.estimateGas(from: acct.address, to: Chain.monadPay, value: amount, data: data)
             async let subF: Void = subscribe(req)
             let (nonce, price, gasEst, _) = try await (nonceF, priceF, gasF, subF)
             let gasLimit = gasEst + gasEst / 10          // Monad charges the full gas limit
             let raw = try acct.signLegacy(nonce: nonce, gasPrice: price, gasLimit: gasLimit, to: Chain.monadPay,
-                                          value: req.amount, data: data, chainId: Chain.chainId)
+                                          value: amount, data: data, chainId: Chain.chainId)
             t0 = Date()
             signedMs = 0
             let hash = try await MonadRPC.shared.sendRaw(raw)
             txHash = hash
             var rec = PaymentRecord(txHash: hash, merchantName: req.merchantName, merchant: req.merchant, memo: req.memo,
-                                    amountWei: String(req.amount), date: Date())
+                                    amountWei: String(amount), date: Date())
             rec.cardId = card.id
             rec.feeWei = String(gasLimit * price)
             rec.proposedMs = stateMs[.proposed]

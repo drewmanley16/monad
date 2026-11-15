@@ -36,7 +36,7 @@ struct TapToPayView: View {
     private func start() {
         store.beginTap()
         if let preloaded { store.found(preloaded); return }
-        scanner.start { req in store.found(req) }
+        scanner.start(payer: store.address) { req in store.found(req) }
     }
 
     private var topBar: some View {
@@ -97,10 +97,16 @@ struct TapToPayView: View {
                 }
 
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(MON.format(req.amount, maxFraction: 6)).font(.system(size: 56, weight: .semibold, design: .rounded))
+                    Text(MON.format(store.payAmount, maxFraction: 6)).font(.system(size: 56, weight: .semibold, design: .rounded))
                     Text("MON").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
                 }
                 .minimumScaleFactor(0.5).lineLimit(1)
+
+                Picker("Tip", selection: $store.tipPercent) {
+                    Text("No tip").tag(0); Text("10%").tag(10); Text("15%").tag(15); Text("20%").tag(20)
+                }
+                .pickerStyle(.segmented)
+                .disabled(store.phase != .confirm && !isFailed)
 
                 VStack(spacing: 0) {
                     cardPicker
@@ -189,7 +195,7 @@ struct TapToPayView: View {
             SuccessCheck(size: 88)
             if let req = store.request {
                 VStack(spacing: 4) {
-                    Text("Paid \(MON.format(req.amount, maxFraction: 6)) MON").font(.title2.weight(.semibold))
+                    Text("Paid \(MON.format(store.payAmount, maxFraction: 6)) MON").font(.title2.weight(.semibold))
                     Text(req.merchantName).font(.subheadline).foregroundStyle(.secondary)
                 }
             }

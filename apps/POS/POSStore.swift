@@ -110,6 +110,8 @@ struct Sale: Identifiable, Codable, Hashable {
     var tipWei: String?
     var orderNumber: Int?
     var splitPart: String?           // "2/3"
+    var refundTx: String?
+    var rewardApplied: String?
 
     var finalizedMs: Int? { states[CommitState.finalized.rawValue].map { Int($0 * 1000) } }
     var tip: Wei { tipWei.flatMap { Wei($0) } ?? 0 }
@@ -161,6 +163,7 @@ final class POSStore: ObservableObject {
     @AppStorage("pos.name") var merchantName = "Tapnad Café" { didSet { beacon.name = merchantName } }
     @AppStorage("pos.payout") var payout = "0x2bbf6125b26B771098836f981F0588A943641b6B"
     @AppStorage("pos.taxPercent") var taxPercent: Double = 0
+    @AppStorage("pos.usdRate") var usdRate: Double = 0          // display only; 0 hides USD
 
     // Catalog
     @Published var catalog: [Product] = [] { didSet { saveCatalog() } }
@@ -181,6 +184,10 @@ final class POSStore: ObservableObject {
     @Published var parts: [PaymentRequest] = []
     @Published var paidParts: [PaidEvent] = []
     @Published var lastOrderNumber: Int?
+    @Published var identifiedPayer: String?
+    @Published var rewardNotice: String?
+    @Published var refundBalance: Wei?
+    @Published var refunding: String?
 
     // Ledger
     @Published var sales: [Sale] = []
@@ -204,12 +211,19 @@ final class POSStore: ObservableObject {
     let beacon = TapBeacon()
     private var stream: MonadStream?
     private var firstSeen: [String: Date] = [:]
-    private var pendingOrders: [String: (lines: [OrderLine], tip: Wei, number: Int, part: String?)] = [:]
+    private var pendingOrders: [String: (lines: [OrderLine], tip: Wei, number: Int, part: String?, expected: Wei, reward: String?)] = [:]
+    private var pollTimer: Timer?
+    private var redeemed: [String: Int] {
+        get { (UserDefaults.standard.dictionary(forKey: "pos.redeemed") as? [String: Int]) ?? [:] }
+        set { UserDefaults.standard.set(newValue, forKey: "pos.redeemed") }
+    }
+    let refundAccount: EthAccount? = POSKeychain.refundAccount()
     private var lastProposed: Date?
     @AppStorage("pos.nextOrder") private var nextOrderNumber = 101
 
     init() {
         beacon.name = merchantName
+        beacon.onIdentify = { [weak self] payer in self?.identify(payer) }
         let d = UserDefaults.standard
         if let data = d.data(forKey: "pos.sales"), let s = try? JSONDecoder().decode([Sale].self, from: data) { sales = s }
         if let data = d.data(forKey: "pos.tickets"), let t = try? JSONDecoder().decode([KitchenTicket].self, from: data) { tickets = t }
@@ -219,6 +233,12 @@ final class POSStore: ObservableObject {
             catalog = Product.defaults
         }
         connect()
+        Task { await refreshRefundBalance() }
+    }
+
+    func usd(_ w: Wei) -> String? {
+        guard usdRate > 0 else { return nil }
+        return (Double(w) / 1e18 * usdRate).formatted(.currency(code: "USD"))
     }
 
     // MARK: Cart
@@ -306,23 +326,129 @@ final class POSStore: ObservableObject {
             return PaymentRequest(merchant: payout, amount: amt, memo: m, merchantName: merchantName)
         }
         for (i, r) in parts.enumerated() {
-            pendingOrders[r.invoiceId.hex.lowercased()] = (i == 0 ? orderLines : [], i == 0 ? tip : 0, number, n > 1 ? "\(i + 1)/\(n)" : nil)
+            pendingOrders[r.invoiceId.hex.lowercased()] = (i == 0 ? orderLines : [], i == 0 ? tip : 0, number, n > 1 ? "\(i + 1)/\(n)" : nil, r.amount, nil)
         }
         paidParts = []
         stateMs = [:]
+        identifiedPayer = nil
+        rewardNotice = nil
         withAnimation(.spring(response: 0.5, dampingFraction: 0.86)) { charge = .awaiting(parts[0]) }
         beacon.publish(parts[0])
+        startPolling()
     }
+
+    /// Rehearsal / automation: tapnadpos://charge?items=Espresso,Croissant&split=2
+    func handle(url: URL) {
+        if url.scheme == "tapnadpos", url.host == "newsale" { newSale(); return }
+        guard url.scheme == "tapnadpos", url.host == "charge",
+              let q = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems else { return }
+        guard charge == .idle else { return }
+        clear()
+        for name in (q.first { $0.name == "items" }?.value ?? "").split(separator: ",") {
+            if let p = catalog.first(where: { $0.name.caseInsensitiveCompare(String(name)) == .orderedSame }) {
+                add(p, options: p.category.hasOptions ? DrinkOptions() : nil)
+            }
+        }
+        splitCount = Int(q.first { $0.name == "split" }?.value ?? "") ?? 1
+        tipPercent = Int(q.first { $0.name == "tip" }?.value ?? "") ?? 0
+        startCharge()
+    }
+
+    // MARK: Identify + rewards
+
+    /// A phone tapped and told us its wallet. If it has an unredeemed free drink, comp the cheapest drink
+    /// and re-issue the request before the phone reads it.
+    func identify(_ payer: String) {
+        guard case .awaiting(let req) = charge else { return }
+        withAnimation(.snappy) { identifiedPayer = payer }
+        guard parts.count == 1, paidParts.isEmpty, let c = customer(payer) else { return }
+        let available = c.rewardsEarned - (redeemed[payer.lowercased()] ?? 0)
+        guard available > 0, let drink = cart.filter({ $0.product.category.isDrink }).min(by: { $0.unit < $1.unit }) else { return }
+        let newAmount = req.amount > drink.unit ? req.amount - drink.unit : 0
+        guard newAmount > 0 else { return }
+        let key = req.invoiceId.hex.lowercased()
+        guard var order = pendingOrders.removeValue(forKey: key) else { return }
+        let updated = PaymentRequest(merchant: req.merchant, amount: newAmount, memo: req.memo + ", Reward: free \(drink.title)", merchantName: req.merchantName)
+        order.expected = newAmount
+        order.reward = "Free \(drink.title)"
+        pendingOrders[updated.invoiceId.hex.lowercased()] = order
+        parts = [updated]
+        rewardNotice = "Free \(drink.title) applied — loyalty reward"
+        withAnimation(.snappy) { charge = .awaiting(updated) }
+        beacon.publish(updated)
+    }
+
+    // MARK: Fallback polling (if the WebSocket feed drops)
+
+    private func startPolling() {
+        pollTimer?.invalidate()
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { [weak self] _ in
+            Task { @MainActor in await self?.poll() }
+        }
+    }
+
+    private func stopPolling() { pollTimer?.invalidate(); pollTimer = nil }
+
+    private func poll() async {
+        guard case .awaiting = charge, blockNumber > 0 else { if charge == .idle { stopPolling() }; return }
+        let from = Wei(max(0, blockNumber - 40)).hexQuantity
+        guard let logs: [[String: Any]] = try? await MonadRPC.shared.call("eth_getLogs", [[
+            "address": Chain.monadPay, "fromBlock": from, "toBlock": "latest",
+            "topics": [MonadPayABI.paidTopic, MonadPayABI.topic(address: payout)],
+        ]]) else { return }
+        for var log in logs {
+            guard let topics = log["topics"] as? [String], topics.count == 4,
+                  !sales.contains(where: { $0.id == topics[2].lowercased() }),
+                  pendingOrders[topics[2].lowercased()] != nil else { continue }
+            log["commitState"] = CommitState.proposed.rawValue
+            onLog(log)
+        }
+    }
+
+    // MARK: Refunds (sent from the register's refund wallet through MonadPay, so the phone sees them live)
+
+    func refreshRefundBalance() async {
+        guard let a = refundAccount else { return }
+        refundBalance = try? await MonadRPC.shared.balance(a.address)
+    }
+
+    func refund(_ sale: Sale) async -> String? {
+        guard let acct = refundAccount, sale.refundTx == nil else { return "No refund wallet" }
+        refunding = sale.id
+        defer { refunding = nil }
+        do {
+            let memo = "Refund · Order #\(sale.orderNumber.map(String.init) ?? "—") · \(merchantName)"
+            let data = MonadPayABI.encodePay(merchant: sale.event.payer, invoiceId: .random(32), memo: memo)
+            async let n = MonadRPC.shared.nonce(acct.address)
+            async let gp = MonadRPC.shared.gasPrice()
+            async let g = MonadRPC.shared.estimateGas(from: acct.address, to: Chain.monadPay, value: sale.event.amount, data: data)
+            let (nonce, price, gas) = try await (n, gp, g)
+            let raw = try acct.signLegacy(nonce: nonce, gasPrice: price, gasLimit: gas + gas / 10, to: Chain.monadPay,
+                                          value: sale.event.amount, data: data, chainId: Chain.chainId)
+            let hash = try await MonadRPC.shared.sendRaw(raw)
+            if let i = sales.firstIndex(where: { $0.id == sale.id }) { sales[i].refundTx = hash; saveSales() }
+            await refreshRefundBalance()
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
+    var refundsTotal: Wei { sales.filter { $0.refundTx != nil }.reduce(0) { $0 + $1.event.amount } }
 
     var currentPartIndex: Int { paidParts.count }
 
     func cancelCharge() {
+        stopPolling()
         beacon.publish(nil)
         parts = []; paidParts = []
         withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) { charge = .idle }
     }
 
     func newSale() {
+        stopPolling()
+        identifiedPayer = nil
+        rewardNotice = nil
         beacon.publish(nil)
         parts = []; paidParts = []
         clear()
@@ -410,8 +536,12 @@ final class POSStore: ObservableObject {
             var states: [String: Double] = [:]
             for s in CommitState.timeline where s.rank <= state.rank { states[s.rawValue] = elapsed }
             let order = pendingOrders.removeValue(forKey: ev.invoiceId)
-            let sale = Sale(event: ev, date: now, states: states, lines: order?.lines, tipWei: order.map { String($0.tip) },
-                            orderNumber: order?.number, splitPart: order?.part)
+            // Anything paid above the requested amount is a tip the customer added on their phone.
+            let phoneTip: Wei = order.map { ev.amount > $0.expected ? ev.amount - $0.expected : 0 } ?? 0
+            var sale = Sale(event: ev, date: now, states: states, lines: order?.lines,
+                            tipWei: order.map { String($0.tip + phoneTip) }, orderNumber: order?.number, splitPart: order?.part)
+            sale.rewardApplied = order?.reward
+            if order?.reward != nil { redeemed[ev.payer.lowercased(), default: 0] += 1 }
             withAnimation(.snappy) { sales.insert(sale, at: 0) }
         }
         saveSales()
@@ -426,6 +556,7 @@ final class POSStore: ObservableObject {
                 beacon.publish(next)
             } else {
                 beacon.publish(nil)
+                stopPolling()
                 let firstLines = sales.first { $0.orderNumber == lastOrderNumber && !($0.lines ?? []).isEmpty }?.lines ?? []
                 if let n = lastOrderNumber { completeOrder(number: n, lines: firstLines, payer: ev.payer) }
                 stateMs = [:]
@@ -495,4 +626,23 @@ final class POSStore: ObservableObject {
         if let d = try? JSONEncoder().encode(catalog) { UserDefaults.standard.set(d, forKey: "pos.catalog") }
     }
     func resetSales() { sales = []; tickets = []; saveSales(); saveTickets() }
+}
+
+// MARK: - Refund wallet key (macOS Keychain)
+
+enum POSKeychain {
+    private static let account = "tapnad.pos.refundkey"
+
+    static func refundAccount() -> EthAccount? {
+        let q: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrAccount as String: account,
+                                kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
+        var out: CFTypeRef?
+        if SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess, let d = out as? Data, let a = try? EthAccount(privateKey: d) {
+            return a
+        }
+        guard let a = try? EthAccount.generate() else { return nil }
+        SecItemAdd([kSecClass as String: kSecClassGenericPassword, kSecAttrAccount as String: account,
+                    kSecValueData as String: a.privateKey] as CFDictionary, nil)
+        return a
+    }
 }

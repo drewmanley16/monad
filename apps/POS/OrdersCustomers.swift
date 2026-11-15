@@ -106,7 +106,11 @@ struct OrderRow: View {
 }
 
 struct ReceiptInspector: View {
+    @EnvironmentObject var store: POSStore
     let sale: Sale
+    @State private var confirm = false
+    @State private var error: String?
+    private var current: Sale { store.sales.first { $0.id == sale.id } ?? sale }
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
@@ -129,6 +133,7 @@ struct ReceiptInspector: View {
                         Text(sale.event.memo.isEmpty ? "Payment" : sale.event.memo).font(T.sans(13))
                     }
                     if sale.tip > 0 { KV(k: "Tip", v: MON.format(sale.tip, maxFraction: 4)) }
+                    if let r = sale.rewardApplied { KV(k: "Reward", v: r) }
                     Rule()
                     KV(k: "Total", v: MON.format(sale.event.amount, maxFraction: 4), strong: true)
                 }
@@ -143,6 +148,25 @@ struct ReceiptInspector: View {
                             Text(sale.states[s.rawValue].map { "+\(Int($0 * 1000)) ms" } ?? "—").font(T.mono(13))
                         }
                     }
+                }
+
+                VStack(alignment: .leading, spacing: 9) {
+                    Label2("Refund")
+                    if let tx = current.refundTx {
+                        HStack {
+                            Text("Refunded").font(T.sans(13, .medium))
+                            Spacer()
+                            Link("View ↗", destination: URL(string: Chain.explorerTx + tx)!).font(T.sans(12.5))
+                        }
+                    } else {
+                        Button(store.refunding == sale.id ? "Refunding…" : "Refund \(MON.format(sale.event.amount, maxFraction: 4)) MON") { confirm = true }
+                            .buttonStyle(QuietAction())
+                            .disabled(store.refunding != nil)
+                        if let error { Text(error).font(T.sans(12)).foregroundStyle(T.red) }
+                    }
+                }
+                .confirmationDialog("Refund \(MON.format(sale.event.amount, maxFraction: 4)) MON to \(shortAddress(sale.event.payer))?", isPresented: $confirm) {
+                    Button("Refund") { Task { error = await store.refund(sale) } }
                 }
 
                 VStack(alignment: .leading, spacing: 9) {

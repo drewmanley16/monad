@@ -2,17 +2,21 @@ import Foundation
 import CoreBluetooth
 import Network
 
-/// Broadcasts the active charge so a phone can "tap" it:
-/// - Bluetooth LE peripheral (real iPhone — phone triggers on strong RSSI = physically touching)
-/// - Bonjour TXT record (iOS Simulator / same network)
+/// Broadcasts the active charge so a phone can "tap" it, and lets the phone identify itself first.
+/// - Bluetooth LE (real iPhone): phone writes its address to `identify`, then reads `request`.
+/// - Bonjour (Simulator / same network): TXT advertises the charge; the phone opens a TCP
+///   connection, sends `{"payer": "0x…"}\n`, and gets the (possibly reward-adjusted) request back.
 final class TapBeacon: NSObject, CBPeripheralManagerDelegate {
     private var peripheral: CBPeripheralManager!
-    private var characteristic: CBMutableCharacteristic?
     private var listener: NWListener?
-    private var request: PaymentRequest?
+    private(set) var request: PaymentRequest?
     private var serviceAdded = false
     private(set) var bluetoothOn = false
     var name = "Tapnad POS"
+
+    /// Called on the main queue when a phone identifies; return value is ignored —
+    /// the store updates the published request synchronously.
+    var onIdentify: ((String) -> Void)?
 
     override init() {
         super.init()
@@ -26,15 +30,14 @@ final class TapBeacon: NSObject, CBPeripheralManagerDelegate {
         updateAdvertising()
     }
 
-    // MARK: Bonjour
+    // MARK: Bonjour + TCP identify
 
     private func startListener() {
         do {
             let params = NWParameters.tcp
             params.includePeerToPeer = true
             let l = try NWListener(using: params)
-            l.newConnectionHandler = { $0.cancel() }
-            l.stateUpdateHandler = { _ in }
+            l.newConnectionHandler = { [weak self] conn in self?.handle(conn) }
             listener = l
             updateBonjour()
             l.start(queue: .main)
@@ -43,11 +46,25 @@ final class TapBeacon: NSObject, CBPeripheralManagerDelegate {
         }
     }
 
+    private func handle(_ conn: NWConnection) {
+        conn.start(queue: .main)
+        conn.receive(minimumIncompleteLength: 1, maximumLength: 4096) { [weak self] data, _, _, _ in
+            guard let self else { conn.cancel(); return }
+            if let data, let obj = try? JSONSerialization.jsonObject(with: data) as? [String: String],
+               let payer = obj["payer"], isAddress(payer) {
+                self.onIdentify?(payer)
+            }
+            var reply = self.request?.fields ?? [:]
+            reply["state"] = self.request == nil ? "idle" : "charging"
+            let body = (try? JSONSerialization.data(withJSONObject: reply)) ?? Data()
+            conn.send(content: body + Data("\n".utf8), completion: .contentProcessed { _ in conn.cancel() })
+        }
+    }
+
     private func updateBonjour() {
         var fields = request?.fields ?? [:]
         fields["state"] = request == nil ? "idle" : "charging"
-        let txt = NWTXTRecord(fields)
-        listener?.service = NWListener.Service(name: name, type: TapLink.bonjourType, domain: nil, txtRecord: txt.data)
+        listener?.service = NWListener.Service(name: name, type: TapLink.bonjourType, domain: nil, txtRecord: NWTXTRecord(fields).data)
     }
 
     // MARK: BLE
@@ -55,11 +72,10 @@ final class TapBeacon: NSObject, CBPeripheralManagerDelegate {
     func peripheralManagerDidUpdateState(_ p: CBPeripheralManager) {
         bluetoothOn = p.state == .poweredOn
         guard bluetoothOn, !serviceAdded else { return }
-        let c = CBMutableCharacteristic(type: CBUUID(string: TapLink.requestCharUUID),
-                                        properties: [.read], value: nil, permissions: [.readable])
+        let req = CBMutableCharacteristic(type: CBUUID(string: TapLink.requestCharUUID), properties: [.read], value: nil, permissions: [.readable])
+        let ident = CBMutableCharacteristic(type: CBUUID(string: TapLink.identifyCharUUID), properties: [.write], value: nil, permissions: [.writeable])
         let s = CBMutableService(type: CBUUID(string: TapLink.serviceUUID), primary: true)
-        s.characteristics = [c]
-        characteristic = c
+        s.characteristics = [req, ident]
         p.add(s)
     }
 
@@ -84,5 +100,12 @@ final class TapBeacon: NSObject, CBPeripheralManagerDelegate {
         guard req.offset <= d.count else { p.respond(to: req, withResult: .invalidOffset); return }
         req.value = d.subdata(in: req.offset..<d.count)
         p.respond(to: req, withResult: .success)
+    }
+
+    func peripheralManager(_ p: CBPeripheralManager, didReceiveWrite requests: [CBATTRequest]) {
+        for r in requests where r.characteristic.uuid == CBUUID(string: TapLink.identifyCharUUID) {
+            if let v = r.value, let payer = String(data: v, encoding: .utf8), isAddress(payer) { onIdentify?(payer) }
+        }
+        if let first = requests.first { p.respond(to: first, withResult: .success) }
     }
 }
