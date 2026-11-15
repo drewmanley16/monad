@@ -215,13 +215,3 @@ struct CustomersView: View {
     }
 }
 
-struct Metric: View {
-    let label: String
-    let value: String
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(T.sans(12)).foregroundStyle(T.faint)
-            Text(value).font(T.mono(22, .light)).contentTransition(.numericText())
-        }
-    }
-}

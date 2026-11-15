@@ -46,6 +46,7 @@
 		78ACADF819E2842747C28D3A /* InsightsCatalogSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsCatalogSettings.swift; sourceTree = "<group>"; };
 		813A1B2E8B372CCCC53A2F59 /* POSStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = POSStore.swift; sourceTree = "<group>"; };
 		81859A53AFEE9F087BAC6F19 /* WalletApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletApp.swift; sourceTree = "<group>"; };
+		818E52C03389F61EC3F5F4C9 /* .keep */ = {isa = PBXFileReference; path = .keep; sourceTree = "<group>"; };
 		8CF8BD126CA9ACA08C78AA6C /* POSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = POSApp.swift; sourceTree = "<group>"; };
 		954A4CFB32B258B41A2C1EB4 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		9E6BE7765E41F53C102CB371 /* POS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = POS.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -101,6 +102,7 @@
 				D5A6FD47EC7D72BD45AAAFA9 /* RegisterView.swift */,
 				736034F688BBBC1300316908 /* TapBeacon.swift */,
 				954A4CFB32B258B41A2C1EB4 /* Theme.swift */,
+				F0272FC932A294CF3E9A3D31 /* Images */,
 			);
 			path = POS;
 			sourceTree = "<group>";
@@ -130,6 +132,14 @@
 				FDCF31FA01A5722D91C28EE4 /* Design.swift */,
 			);
 			path = Shared;
+			sourceTree = "<group>";
+		};
+		F0272FC932A294CF3E9A3D31 /* Images */ = {
+			isa = PBXGroup;
+			children = (
+				818E52C03389F61EC3F5F4C9 /* .keep */,
+			);
+			path = Images;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

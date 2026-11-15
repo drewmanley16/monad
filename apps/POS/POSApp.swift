@@ -9,8 +9,8 @@ struct POSApp: App {
         WindowGroup("Tapnad POS") {
             RootView()
                 .environmentObject(store)
-                .preferredColorScheme(.dark)
-                .tint(T.text)
+                .preferredColorScheme(.light)
+                .tint(T.blue)
                 .frame(minWidth: 1100, minHeight: 720)
         }
         .windowStyle(.hiddenTitleBar)
@@ -19,8 +19,18 @@ struct POSApp: App {
 }
 
 enum NavSection: String, CaseIterable, Identifiable {
-    case register = "Register", orders = "Orders", customers = "Customers", reports = "Reports", items = "Items", settings = "Settings"
+    case register = "Checkout", orders = "Transactions", customers = "Customers", reports = "Reports", items = "Items", settings = "Settings"
     var id: String { rawValue }
+    var icon: String {
+        switch self {
+        case .register: "cart"
+        case .orders: "list.bullet.rectangle"
+        case .customers: "person.2"
+        case .reports: "chart.bar"
+        case .items: "square.grid.2x2"
+        case .settings: "gearshape"
+        }
+    }
     var shortcut: KeyEquivalent { KeyEquivalent(Character("\(NavSection.allCases.firstIndex(of: self)! + 1)")) }
 }
 
@@ -45,13 +55,14 @@ struct RootView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(T.surface)
             }
             if store.charge != .idle {
-                ChargeScreen().transition(.opacity).zIndex(10)
+                ChargeScreen().transition(.move(edge: .bottom)).zIndex(10)
             }
         }
         .foregroundStyle(T.text)
-        .animation(.easeOut(duration: 0.2), value: store.charge)
+        .animation(.spring(response: 0.4, dampingFraction: 0.9), value: store.charge)
         .ignoresSafeArea()
     }
 }
@@ -61,42 +72,36 @@ struct TopBar: View {
     @Binding var section: NavSection
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("tapnad").font(T.sans(14, .semibold))
-                Text("pos").font(T.sans(14)).foregroundStyle(T.faint)
-                Text("·").foregroundStyle(T.faint)
-                Text(store.merchantName).font(T.sans(13)).foregroundStyle(T.dim)
-                Spacer()
-                HStack(spacing: 7) {
-                    Circle().fill(store.connected ? T.green : T.amber).frame(width: 5, height: 5)
-                    Text(store.connected ? "live" : "connecting").font(T.sans(12)).foregroundStyle(T.dim)
-                    Text(store.blockNumber == 0 ? "—" : store.blockNumber.formatted())
-                        .font(T.mono(12)).foregroundStyle(T.text)
-                        .contentTransition(.numericText(value: Double(store.blockNumber)))
-                    Text(store.blockTimeMs.map { "\($0)ms" } ?? "").font(T.mono(12)).foregroundStyle(T.faint)
-                }
-                .animation(.default, value: store.blockNumber)
-            }
-            HStack(spacing: 22) {
-                ForEach(NavSection.allCases) { s in
-                    Button { section = s } label: {
-                        VStack(spacing: 9) {
-                            Text(s.rawValue).font(T.sans(13, section == s ? .medium : .regular))
-                                .foregroundStyle(section == s ? T.text : T.dim)
-                            Rectangle().fill(section == s ? T.text : .clear).frame(height: 1)
-                        }
-                        .fixedSize()
+        HStack(spacing: 4) {
+            Text("Tapnad").font(T.sans(16, .bold)).padding(.trailing, 18)
+            ForEach(NavSection.allCases) { s in
+                Button { section = s } label: {
+                    Text(s.rawValue)
+                        .font(T.sans(14, section == s ? .semibold : .regular))
+                        .foregroundStyle(section == s ? T.text : T.dim)
+                        .padding(.horizontal, 12).frame(height: 32)
+                        .background(section == s ? Color.black.opacity(0.06) : .clear, in: RoundedRectangle(cornerRadius: 6))
                         .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .keyboardShortcut(s.shortcut, modifiers: .command)
                 }
-                Spacer()
+                .buttonStyle(.plain)
+                .keyboardShortcut(s.shortcut, modifiers: .command)
             }
+            Spacer()
+            HStack(spacing: 8) {
+                Circle().fill(store.connected ? T.green : T.amber).frame(width: 7, height: 7)
+                Text(store.connected ? "Online" : "Connecting").font(T.sans(13)).foregroundStyle(T.dim)
+                Text("· Block \(store.blockNumber.formatted())").font(T.mono(13)).foregroundStyle(T.dim)
+                    .contentTransition(.numericText(value: Double(store.blockNumber)))
+            }
+            .animation(.default, value: store.blockNumber)
+            Text(store.merchantName).font(T.sans(13, .medium))
+                .padding(.horizontal, 10).frame(height: 30)
+                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(T.rule))
+                .padding(.leading, 12)
         }
-        .padding(.horizontal, 28)
-        .padding(.top, 34)
+        .padding(.leading, 84).padding(.trailing, 20)
+        .frame(height: 52)
+        .background(T.surface)
     }
 }
 
