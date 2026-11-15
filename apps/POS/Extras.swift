@@ -133,8 +133,8 @@ struct CustomerDisplay: View {
             if let note = store.rewardNotice { Label(note, systemImage: "gift").font(T.sans(18, .medium)) }
             ContactlessRings(color: T.text, size: 200, icon: "wave.3.right")
             Text("Hold your phone near the register").font(T.sans(22, .semibold))
-            Image(nsImage: qrNSImage(req.url.absoluteString)).interpolation(.none).resizable().frame(width: 120, height: 120)
-            Text("or scan with Tapnad Wallet").font(T.sans(14)).foregroundStyle(T.dim)
+            Image(nsImage: qrNSImage(req.webURL.absoluteString)).interpolation(.none).resizable().frame(width: 120, height: 120)
+            Text("or scan with your phone camera").font(T.sans(14)).foregroundStyle(T.dim)
         }
     }
 

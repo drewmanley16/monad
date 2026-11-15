@@ -4,10 +4,24 @@ import CoreImage.CIFilterBuiltins
 struct ReceiveView: View {
     @EnvironmentObject var store: WalletStore
     @State private var copied = false
+    @State private var adding = false
+    @State private var faucetMsg: String?
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
+                Button {
+                    adding = true; faucetMsg = nil
+                    Task { let err = await store.requestTestMoney(); adding = false; faucetMsg = err ?? "Added! Your balance will update in a moment."; if err == nil { Haptics.success() } }
+                } label: {
+                    HStack { if adding { ProgressView().tint(.white) }; Text(adding ? "Adding…" : "Add $10 test money") }
+                        .font(.body.weight(.semibold)).frame(maxWidth: .infinity).frame(height: 50)
+                }
+                .buttonStyle(PrimaryButton())
+                .disabled(adding)
+                .padding(.horizontal, 24)
+                if let faucetMsg { Text(faucetMsg).font(.footnote).foregroundStyle(.secondary) }
+                Text("Or send money to this card").font(.footnote).foregroundStyle(.secondary).padding(.top, 4)
                 Image(uiImage: qrImage(store.address)).interpolation(.none).resizable()
                     .frame(width: 200, height: 200).padding(14)
                     .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))

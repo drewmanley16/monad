@@ -6,3 +6,4 @@ contracts/.env
 apps/build/
 apps/Tapnad.xcodeproj/xcuserdata/
 DEPLOYED_ADDRESS
+FAUCET_ADDRESS

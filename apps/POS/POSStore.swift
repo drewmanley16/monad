@@ -173,6 +173,9 @@ enum LoyaltyProgram { static let stampsForReward = 8 }
 
 @MainActor
 final class POSStore: ObservableObject {
+    /// Split bill is hidden until it's been rehearsed end-to-end.
+    nonisolated static let splitEnabled = false
+
     // Settings
     @AppStorage("pos.name") var merchantName = "Tapnad Café" { didSet { beacon.name = merchantName } }
     @AppStorage("pos.payout") var payout = "0x2bbf6125b26B771098836f981F0588A943641b6B"

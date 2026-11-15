@@ -10,6 +10,7 @@ enum Chain {
     static let ws = URL(string: "wss://testnet-rpc.monad.xyz")!
     static let explorerTx = "https://testnet.monadexplorer.com/tx/"
     static let faucet = URL(string: "https://faucet.monad.xyz")!
+    static let site = URL(string: "https://tapnad.vercel.app")!
     /// MonadPay contract on testnet (written by contracts/deploy.sh)
     static let monadPay = "0xF825f70E27b7f65bB44475FB4530b7c09245F128"
 }
@@ -176,8 +177,16 @@ struct PaymentRequest: Identifiable, Equatable {
         return c.url!
     }
 
+    /// Web checkout link — what the POS QR encodes so any phone camera can pay without the app.
+    var webURL: URL {
+        var c = URLComponents(url: Chain.site.appendingPathComponent("pay"), resolvingAgainstBaseURL: false)!
+        c.queryItems = fields.sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) }
+        return c.url!
+    }
+
     init?(url: URL) {
-        guard url.scheme == "monadpay", let c = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
+        let isWeb = url.scheme == "https" && url.host == Chain.site.host && url.path.hasPrefix("/pay")
+        guard url.scheme == "monadpay" || isWeb, let c = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
         let q = Dictionary((c.queryItems ?? []).map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { a, _ in a })
         self.init(fields: q)
     }

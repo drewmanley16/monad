@@ -95,6 +95,23 @@ final class WalletStore: ObservableObject {
         save()
     }
 
+    /// Free test money from the Tapnad faucet (server sends a small amount of testnet MON).
+    func requestTestMoney() async -> String? {
+        guard let addr = selectedCard?.address else { return "No card" }
+        var req = URLRequest(url: Chain.site.appendingPathComponent("api/faucet"))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["address": addr])
+        do {
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+            if (resp as? HTTPURLResponse)?.statusCode != 200 { return obj?["error"] as? String ?? "Couldn't add money" }
+            try? await Task.sleep(for: .seconds(3))   // let the funds become spendable
+            await refresh()
+            return nil
+        } catch { return error.localizedDescription }
+    }
+
     func privateKeyHex(_ card: CardAccount) -> String? { Keychain.load(account: Self.keyName(card.id))?.hex }
 
     func refresh() async {
@@ -219,7 +236,13 @@ final class WalletStore: ObservableObject {
                                           value: amount, data: data, chainId: Chain.chainId)
             t0 = Date()
             signedMs = 0
-            let hash = try await MonadRPC.shared.sendRaw(raw)
+            var hash = ""
+            for attempt in 0..<5 {
+                do { hash = try await MonadRPC.shared.sendRaw(raw); break }
+                catch let e as RPCError where attempt < 4 && e.message.localizedCaseInsensitiveContains("insufficient balance") {
+                    try? await Task.sleep(for: .seconds(1))   // freshly received funds settle in ~1–2 s
+                }
+            }
             txHash = hash
             var rec = PaymentRecord(txHash: hash, merchantName: req.merchantName, merchant: req.merchant, memo: req.memo,
                                     amountWei: String(amount), date: Date())

@@ -334,11 +334,11 @@ struct TicketView: View {
                         Text("None").tag(0); Text("10%").tag(10); Text("15%").tag(15); Text("20%").tag(20)
                     }
                 }
-                control("Split") {
+                if POSStore.splitEnabled { control("Split") {
                     Picker("", selection: $store.splitCount) {
                         Text("No").tag(1); Text("2").tag(2); Text("3").tag(3); Text("4").tag(4)
                     }
-                }
+                } }
                 Rule()
                 KV(k: "Subtotal", v: "\(Money.usd(store.subtotal))")
                 if store.discountPercent > 0 { KV(k: store.discountPercent == 100 ? "Comped" : "Discount \(store.discountPercent)%", v: "−\(Money.usd(store.discount))") }
@@ -453,11 +453,11 @@ struct ChargeScreen: View {
                 }
                 Rectangle().fill(T.rule).frame(width: 1, height: 180)
                 VStack(spacing: 14) {
-                    Image(nsImage: qrNSImage(req.url.absoluteString)).interpolation(.none).resizable()
+                    Image(nsImage: qrNSImage(req.webURL.absoluteString)).interpolation(.none).resizable()
                         .frame(width: 176, height: 176).padding(12)
                         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(T.rule))
                     Text("Scan to pay").font(T.sans(16, .semibold))
-                    Text("Any Tapnad wallet").font(T.sans(13)).foregroundStyle(T.dim)
+                    Text("Any phone camera, no app needed").font(T.sans(13)).foregroundStyle(T.dim)
                 }
             }
             Spacer()

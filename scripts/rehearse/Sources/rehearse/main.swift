@@ -69,6 +69,7 @@ var seen = Set<String>()
 for i in 0..<split {
     let req = await nextRequest(skip: seen)
     seen.insert(req.invoiceId.hex)
+    if ProcessInfo.processInfo.environment["PRINT_URL"] != nil { print(req.webURL.absoluteString); exit(0) }
     print("part \(i + 1)/\(split): \(MON.format(req.amount, maxFraction: 6)) MON  memo=\"\(req.memo)\"")
     try await pay(req)
 }
