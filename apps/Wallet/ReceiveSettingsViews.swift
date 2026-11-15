@@ -51,40 +51,38 @@ func qrImage(_ string: String) -> UIImage {
 struct SettingsView: View {
     @EnvironmentObject var store: WalletStore
     @Environment(\.dismiss) private var dismiss
-    @State private var importText = ""
-    @State private var importMsg: String?
-    @State private var revealed: String?
+    @State private var revealed: [UUID: String] = [:]
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Account") {
+                Section("Overview") {
                     LabeledContent("Network", value: Chain.name)
-                    LabeledContent("Address") {
-                        Text(shortAddress(store.address)).font(.system(.body, design: .monospaced))
-                    }
+                    LabeledContent("Total balance", value: "\(MON.format(store.totalBalance, maxFraction: 3)) MON")
                     LabeledContent("Tap mode", value: ReaderScanner.isSimulator ? "Local network" : "Bluetooth proximity")
                 }
-                Section {
-                    Button(revealed == nil ? "Reveal Private Key" : "Hide Private Key") {
-                        if revealed != nil { revealed = nil; return }
-                        Task {
-                            if await Biometrics.authenticate("Reveal private key"), let k = Keychain.load() { revealed = k.hex }
+                ForEach(store.cards) { card in
+                    Section {
+                        HStack(spacing: 12) {
+                            RoundedRectangle(cornerRadius: 5).fill(card.theme.gradient).frame(width: 40, height: 26)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(card.name).font(.body.weight(.medium))
+                                Text(card.address).font(.system(.caption2, design: .monospaced)).foregroundStyle(.secondary)
+                                    .textSelection(.enabled)
+                            }
                         }
-                    }
-                    if let revealed {
-                        Text(revealed).font(.system(.caption2, design: .monospaced)).textSelection(.enabled)
-                    }
-                } footer: { Text("Testnet only. Your key never leaves this device.") }
-
-                Section {
-                    SecureField("0x… private key", text: $importText)
-                    Button("Import Wallet") {
-                        importMsg = store.importKey(importText) ? "Imported" : "Invalid key"
-                        importText = ""
-                    }
-                    if let importMsg { Text(importMsg).font(.footnote).foregroundStyle(.secondary) }
-                } header: { Text("Import") }
+                        Button(revealed[card.id] == nil ? "Reveal Private Key" : "Hide Private Key") {
+                            if revealed[card.id] != nil { revealed[card.id] = nil; return }
+                            Task {
+                                if await Biometrics.authenticate("Reveal private key"), let k = store.privateKeyHex(card) { revealed[card.id] = k }
+                            }
+                        }
+                        if let k = revealed[card.id] {
+                            Text(k).font(.system(.caption2, design: .monospaced)).textSelection(.enabled)
+                        }
+                    } header: { Text(card.isBusiness ? "Business card" : "Card") }
+                }
+                Section {} footer: { Text("Testnet only. Keys never leave this device.") }
             }
             .navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }

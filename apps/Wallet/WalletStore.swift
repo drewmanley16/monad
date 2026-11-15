@@ -1,23 +1,16 @@
 import Foundation
 import SwiftUI
 
-struct PaymentRecord: Codable, Identifiable {
-    var id: String { txHash }
-    let txHash: String
-    let merchantName: String
-    let memo: String
-    let amountWei: String
-    let date: Date
-    var proposedMs: Int?
-    var finalizedMs: Int?
-    var amount: Wei { Wei(amountWei) ?? 0 }
-}
-
 @MainActor
 final class WalletStore: ObservableObject {
-    @Published private(set) var account: EthAccount?
-    @Published var balance: Wei?
+    // Cards
+    @Published private(set) var cards: [CardAccount] = []
+    @Published var selectedCardId: UUID? { didSet { save() } }
+    @Published var balances: [UUID: Wei] = [:]
+
+    // Ledger + budgets
     @Published var history: [PaymentRecord] = []
+    @Published var budgets: [ExpenseCategory: Double] = [:] { didSet { save() } }   // MON per month
 
     // Active payment
     @Published var request: PaymentRequest?
@@ -28,41 +21,118 @@ final class WalletStore: ObservableObject {
 
     enum Phase: Equatable { case scanning, confirm, authorizing, sending, approved, failed(String) }
 
+    private var accounts: [UUID: EthAccount] = [:]
     private var stream: MonadStream?
     private var t0 = Date()
-    private let historyKey = "tapnad.history"
+    private let defaults = UserDefaults.standard
 
     init() {
-        if let key = Keychain.load(), let acct = try? EthAccount(privateKey: key) {
-            account = acct
-        } else if let acct = try? EthAccount.generate() {
-            Keychain.save(acct.privateKey)
-            account = acct
+        load()
+        if cards.isEmpty {
+            // migrate the v1 single key, or create a fresh card
+            if let legacy = Keychain.load(), let acct = try? EthAccount(privateKey: legacy) {
+                addCard(acct, name: "Personal", theme: .monad, business: false)
+            } else {
+                _ = createCard(name: "Personal", theme: .monad, business: false)
+            }
         }
-        // Public address mirrored to defaults so tooling (simctl) can fund the wallet.
-        UserDefaults.standard.set(account?.address, forKey: "tapnad.address")
-        if let d = UserDefaults.standard.data(forKey: historyKey),
-           let h = try? JSONDecoder().decode([PaymentRecord].self, from: d) { history = h }
+        for c in cards {
+            if let k = Keychain.load(account: Self.keyName(c.id)), let a = try? EthAccount(privateKey: k) { accounts[c.id] = a }
+        }
+        if selectedCardId == nil || !cards.contains(where: { $0.id == selectedCardId }) { selectedCardId = cards.first?.id }
+        defaults.set(cards.first?.address, forKey: "tapnad.address")   // for tooling (simctl funding)
     }
 
-    var address: String { account?.address ?? "" }
+    // MARK: Cards
 
-    func refresh() async {
-        guard let a = account else { return }
-        if let b = try? await MonadRPC.shared.balance(a.address) {
-            withAnimation(.snappy) { balance = b }
-        }
+    var selectedCard: CardAccount? { cards.first { $0.id == selectedCardId } ?? cards.first }
+    var address: String { selectedCard?.address ?? "" }
+    var balance: Wei? { selectedCard.flatMap { balances[$0.id] } }
+    var totalBalance: Wei { cards.reduce(0) { $0 + (balances[$1.id] ?? 0) } }
+
+    private static func keyName(_ id: UUID) -> String { "tapnad.key.\(id.uuidString)" }
+
+    @discardableResult
+    func createCard(name: String, theme: CardTheme, business: Bool) -> CardAccount? {
+        guard let acct = try? EthAccount.generate() else { return nil }
+        return addCard(acct, name: name, theme: theme, business: business)
     }
 
-    func importKey(_ hex: String) -> Bool {
+    @discardableResult
+    private func addCard(_ acct: EthAccount, name: String, theme: CardTheme, business: Bool) -> CardAccount {
+        let card = CardAccount(id: UUID(), name: name, theme: theme, isBusiness: business, address: acct.address)
+        Keychain.save(acct.privateKey, account: Self.keyName(card.id))
+        accounts[card.id] = acct
+        withAnimation(.snappy) { cards.append(card) }
+        save()
+        Task { await refresh() }
+        return card
+    }
+
+    func importCard(hex: String, name: String, theme: CardTheme, business: Bool) -> Bool {
         guard let d = Data(hex: hex.trimmingCharacters(in: .whitespacesAndNewlines)), d.count == 32,
               let acct = try? EthAccount(privateKey: d) else { return false }
-        Keychain.save(d)
-        account = acct
-        UserDefaults.standard.set(acct.address, forKey: "tapnad.address")
-        balance = nil
-        Task { await refresh() }
+        let c = addCard(acct, name: name, theme: theme, business: business)
+        selectedCardId = c.id
         return true
+    }
+
+    func update(_ card: CardAccount) {
+        if let i = cards.firstIndex(where: { $0.id == card.id }) { cards[i] = card; save() }
+    }
+
+    func delete(_ card: CardAccount) {
+        guard cards.count > 1 else { return }
+        withAnimation(.snappy) { cards.removeAll { $0.id == card.id } }
+        Keychain.delete(account: Self.keyName(card.id))
+        accounts[card.id] = nil
+        if selectedCardId == card.id { selectedCardId = cards.first?.id }
+        save()
+    }
+
+    func privateKeyHex(_ card: CardAccount) -> String? { Keychain.load(account: Self.keyName(card.id))?.hex }
+
+    func refresh() async {
+        await withTaskGroup(of: (UUID, Wei?).self) { g in
+            for c in cards { g.addTask { (c.id, try? await MonadRPC.shared.balance(c.address)) } }
+            for await (id, b) in g { if let b { withAnimation(.snappy) { balances[id] = b } } }
+        }
+    }
+
+    // MARK: Ledger
+
+    func card(for rec: PaymentRecord) -> CardAccount? { cards.first { $0.id == rec.cardId } }
+
+    func setCategory(_ cat: ExpenseCategory, for rec: PaymentRecord) { mutate(rec) { $0.category = cat } }
+    func setNote(_ note: String, for rec: PaymentRecord) { mutate(rec) { $0.note = note.isEmpty ? nil : note } }
+
+    private func mutate(_ rec: PaymentRecord, _ f: (inout PaymentRecord) -> Void) {
+        guard let i = history.firstIndex(where: { $0.id == rec.id }) else { return }
+        f(&history[i]); save()
+    }
+
+    func records(inMonthOf date: Date = .now) -> [PaymentRecord] {
+        let cal = Calendar.current
+        return history.filter { cal.isDate($0.date, equalTo: date, toGranularity: .month) }
+    }
+
+    func spend(_ recs: [PaymentRecord]) -> Double { recs.reduce(0) { $0 + $1.amount.monDouble } }
+
+    /// CSV for expense reports.
+    func exportCSV(_ recs: [PaymentRecord]) -> URL {
+        var csv = "Date,Merchant,Items,Category,Card,Type,Amount (MON),Network fee (MON),Note,Transaction\n"
+        let f = ISO8601DateFormatter()
+        func esc(_ s: String) -> String { "\"" + s.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }
+        for r in recs {
+            let card = card(for: r)
+            csv += [f.string(from: r.date), esc(r.merchantName), esc(r.memo), esc(r.resolvedCategory.name),
+                    esc(card?.name ?? "—"), (card?.isBusiness ?? false) ? "Business" : "Personal",
+                    MON.format(r.amount, maxFraction: 18), MON.format(r.fee, maxFraction: 18),
+                    esc(r.note ?? ""), r.txHash].joined(separator: ",") + "\n"
+        }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Tapnad-Expenses-\(Date.now.formatted(.iso8601.year().month())).csv")
+        try? csv.write(to: url, atomically: true, encoding: .utf8)
+        return url
     }
 
     // MARK: Payment flow
@@ -93,7 +163,7 @@ final class WalletStore: ObservableObject {
     }
 
     func pay() async {
-        guard let req = request, let acct = account else { return }
+        guard let req = request, let card = selectedCard, let acct = accounts[card.id] else { return }
         phase = .authorizing
         guard await Biometrics.authenticate("Pay \(MON.format(req.amount)) MON to \(req.merchantName)") else {
             phase = .confirm; return
@@ -106,18 +176,20 @@ final class WalletStore: ObservableObject {
             async let gasF = MonadRPC.shared.estimateGas(from: acct.address, to: Chain.monadPay, value: req.amount, data: data)
             async let subF: Void = subscribe(req)
             let (nonce, price, gasEst, _) = try await (nonceF, priceF, gasF, subF)
-            // Monad charges the full gas limit — keep the buffer small.
-            let gasLimit = gasEst + gasEst / 10
+            let gasLimit = gasEst + gasEst / 10          // Monad charges the full gas limit
             let raw = try acct.signLegacy(nonce: nonce, gasPrice: price, gasLimit: gasLimit, to: Chain.monadPay,
                                           value: req.amount, data: data, chainId: Chain.chainId)
             t0 = Date()
             signedMs = 0
             let hash = try await MonadRPC.shared.sendRaw(raw)
             txHash = hash
-            history.insert(PaymentRecord(txHash: hash, merchantName: req.merchantName, memo: req.memo,
-                                         amountWei: String(req.amount), date: Date()), at: 0)
-            saveHistory()
-            // Safety net if the socket misses the update.
+            var rec = PaymentRecord(txHash: hash, merchantName: req.merchantName, merchant: req.merchant, memo: req.memo,
+                                    amountWei: String(req.amount), date: Date())
+            rec.cardId = card.id
+            rec.feeWei = String(gasLimit * price)
+            rec.proposedMs = stateMs[.proposed]
+            history.insert(rec, at: 0)
+            save()
             DispatchQueue.main.asyncAfter(deadline: .now() + 6) { [weak self] in
                 guard let self, self.phase == .sending, self.txHash == hash else { return }
                 withAnimation { self.phase = .approved }
@@ -128,7 +200,6 @@ final class WalletStore: ObservableObject {
         }
     }
 
-    /// Subscribe to this invoice's `Paid` log BEFORE broadcasting so the Proposed update can't be missed.
     private func subscribe(_ req: PaymentRequest) async {
         let s = MonadStream()
         stream = s
@@ -151,14 +222,38 @@ final class WalletStore: ObservableObject {
             withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) { phase = .approved }
         }
         if let i = history.firstIndex(where: { $0.txHash == txHash }) {
-            if history[i].proposedMs == nil { history[i].proposedMs = stateMs[.proposed] }
-            if state.rank >= CommitState.finalized.rank { history[i].finalizedMs = stateMs[.finalized]; saveHistory() }
+            history[i].proposedMs = history[i].proposedMs ?? stateMs[.proposed]
+            history[i].votedMs = history[i].votedMs ?? stateMs[.voted]
+            history[i].finalizedMs = history[i].finalizedMs ?? stateMs[.finalized]
+            save()
         }
     }
 
-    private func saveHistory() {
-        if let d = try? JSONEncoder().encode(Array(history.prefix(50))) {
-            UserDefaults.standard.set(d, forKey: historyKey)
+    // MARK: Persistence
+
+    private struct Saved: Codable {
+        var cards: [CardAccount]
+        var selected: UUID?
+        var budgets: [String: Double]
+    }
+
+    private func save() {
+        let s = Saved(cards: cards, selected: selectedCardId,
+                      budgets: Dictionary(uniqueKeysWithValues: budgets.map { ($0.key.rawValue, $0.value) }))
+        if let d = try? JSONEncoder().encode(s) { defaults.set(d, forKey: "tapnad.state") }
+        if let d = try? JSONEncoder().encode(Array(history.prefix(500))) { defaults.set(d, forKey: "tapnad.history") }
+    }
+
+    private func load() {
+        if let d = defaults.data(forKey: "tapnad.state"), let s = try? JSONDecoder().decode(Saved.self, from: d) {
+            cards = s.cards
+            selectedCardId = s.selected
+            budgets = Dictionary(uniqueKeysWithValues: s.budgets.compactMap { k, v in ExpenseCategory(rawValue: k).map { ($0, v) } })
+        }
+        if let d = defaults.data(forKey: "tapnad.history"), let h = try? JSONDecoder().decode([PaymentRecord].self, from: d) {
+            history = h
+            // attach v1 history to the first card
+            if let first = cards.first?.id { for i in history.indices where history[i].cardId == nil { history[i].cardId = first } }
         }
     }
 }

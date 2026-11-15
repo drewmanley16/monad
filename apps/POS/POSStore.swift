@@ -2,32 +2,104 @@ import Foundation
 import SwiftUI
 import AppKit
 
-struct Product: Identifiable, Hashable {
-    let id: String
-    let name: String
-    let symbol: String
-    let price: Wei
-    let tint: Color
+// MARK: - Models
 
-    static let catalog: [Product] = [
-        .init(id: "espresso", name: "Espresso", symbol: "cup.and.saucer.fill", price: MON.parse("0.02")!, tint: .brown),
-        .init(id: "latte", name: "Oat Latte", symbol: "mug.fill", price: MON.parse("0.035")!, tint: .orange),
-        .init(id: "matcha", name: "Matcha", symbol: "leaf.fill", price: MON.parse("0.04")!, tint: .green),
-        .init(id: "coldbrew", name: "Cold Brew", symbol: "takeoutbag.and.cup.and.straw.fill", price: MON.parse("0.03")!, tint: .indigo),
-        .init(id: "croissant", name: "Croissant", symbol: "birthday.cake.fill", price: MON.parse("0.025")!, tint: .yellow),
-        .init(id: "bagel", name: "Bagel", symbol: "circle.circle.fill", price: MON.parse("0.02")!, tint: .pink),
-        .init(id: "water", name: "Sparkling", symbol: "drop.fill", price: MON.parse("0.01")!, tint: .cyan),
-        .init(id: "merch", name: "Nad Tee", symbol: "tshirt.fill", price: MON.parse("0.25")!, tint: .purple),
+enum ProductCategory: String, Codable, CaseIterable, Identifiable {
+    case coffee = "Coffee", tea = "Tea", food = "Food", drinks = "Drinks", merch = "Merch"
+    var id: String { rawValue }
+    var icon: String {
+        switch self {
+        case .coffee: "cup.and.saucer.fill"
+        case .tea: "leaf.fill"
+        case .food: "fork.knife"
+        case .drinks: "waterbottle.fill"
+        case .merch: "tshirt.fill"
+        }
+    }
+    var color: Color {
+        switch self {
+        case .coffee: T.flame
+        case .tea: T.mint
+        case .food: Color(red: 1, green: 0.8, blue: 0.3)
+        case .drinks: Color(red: 0.4, green: 0.8, blue: 1)
+        case .merch: T.magenta
+        }
+    }
+}
+
+struct Product: Identifiable, Codable, Hashable {
+    var id: String = UUID().uuidString
+    var name: String
+    var emoji: String
+    var category: ProductCategory
+    var priceWei: String
+    var price: Wei { Wei(priceWei) ?? 0 }
+
+    init(id: String = UUID().uuidString, _ name: String, _ emoji: String, _ cat: ProductCategory, _ price: String) {
+        self.id = id; self.name = name; self.emoji = emoji; self.category = cat
+        self.priceWei = String(MON.parse(price) ?? 0)
+    }
+
+    static let defaults: [Product] = [
+        .init("Espresso", "☕️", .coffee, "0.02"),
+        .init("Oat Latte", "🥛", .coffee, "0.035"),
+        .init("Cold Brew", "🧊", .coffee, "0.03"),
+        .init("Cortado", "🤎", .coffee, "0.03"),
+        .init("Matcha Latte", "🍵", .tea, "0.04"),
+        .init("Chai", "🫖", .tea, "0.032"),
+        .init("Croissant", "🥐", .food, "0.025"),
+        .init("Everything Bagel", "🥯", .food, "0.02"),
+        .init("Avo Toast", "🥑", .food, "0.06"),
+        .init("Sparkling Water", "💧", .drinks, "0.01"),
+        .init("Orange Juice", "🍊", .drinks, "0.028"),
+        .init("Nad Tee", "👕", .merch, "0.25"),
+        .init("Purple Cap", "🧢", .merch, "0.18"),
     ]
+}
+
+struct OrderLine: Codable, Hashable {
+    let name: String
+    let emoji: String
+    let qty: Int
+    let unitWei: String
+    var unit: Wei { Wei(unitWei) ?? 0 }
 }
 
 struct Sale: Identifiable, Codable, Hashable {
     var id: String { event.invoiceId }
     let event: PaidEvent
     let date: Date
-    var states: [String: Double]   // CommitState.rawValue -> seconds since first seen
+    var states: [String: Double]          // CommitState.rawValue -> seconds since first sighting
+    var lines: [OrderLine]?
+    var tipWei: String?
+
     var finalizedMs: Int? { states[CommitState.finalized.rawValue].map { Int($0 * 1000) } }
+    var votedMs: Int? { states[CommitState.voted.rawValue].map { Int($0 * 1000) } }
+    var tip: Wei { tipWei.flatMap { Wei($0) } ?? 0 }
+    var latestState: CommitState {
+        states[CommitState.finalized.rawValue] != nil ? .finalized : states[CommitState.voted.rawValue] != nil ? .voted : .proposed
+    }
 }
+
+struct Customer: Identifiable {
+    var id: String { address }
+    let address: String
+    let sales: [Sale]
+    var total: Wei { sales.reduce(0) { $0 + $1.event.amount } }
+    var visits: Int { sales.count }
+    var lastSeen: Date { sales.map(\.date).max() ?? .distantPast }
+    var favorite: String? {
+        let counts = sales.flatMap { $0.lines ?? [] }.reduce(into: [String: Int]()) { $0[$1.emoji + " " + $1.name, default: 0] += $1.qty }
+        return counts.max { $0.value < $1.value }?.key
+    }
+    var tier: (name: String, color: Color) {
+        if visits >= 5 || total >= MON.parse("1")! { return ("VIP", T.flame) }
+        if visits >= 2 { return ("Regular", T.violet) }
+        return ("New", T.mint)
+    }
+}
+
+// MARK: - Store
 
 @MainActor
 final class POSStore: ObservableObject {
@@ -35,9 +107,15 @@ final class POSStore: ObservableObject {
     @AppStorage("pos.name") var merchantName = "Tapnad Café" { didSet { beacon.name = merchantName } }
     @AppStorage("pos.payout") var payout = "0x2bbf6125b26B771098836f981F0588A943641b6B"
 
+    // Catalog
+    @Published var catalog: [Product] = [] { didSet { saveCatalog() } }
+
     // Register
     @Published var cart: [String: Int] = [:]
     @Published var customAmount: Wei?
+    @Published var tipPercent: Int = 0
+    @Published var search = ""
+    @Published var categoryFilter: ProductCategory?
     @Published var charge: Charge = .idle
     @Published var stateMs: [CommitState: Int] = [:]
 
@@ -48,7 +126,10 @@ final class POSStore: ObservableObject {
     @Published var connected = false
     @Published var blockNumber: Int = 0
     @Published var blockTimeMs: Int?
-    @Published var recentBlocks: [(id: String, number: Int, state: CommitState, txs: Int)] = []
+    @Published var blockTimeHistory: [Double] = []
+    @Published var recentBlocks: [BlockRow] = []
+
+    struct BlockRow: Identifiable, Equatable { let id: String; let number: Int; var state: CommitState; let gas: Int; let seen: Date }
 
     enum Charge: Equatable {
         case idle
@@ -59,39 +140,57 @@ final class POSStore: ObservableObject {
     let beacon = TapBeacon()
     private var stream: MonadStream?
     private var firstSeen: [String: Date] = [:]
+    private var pendingOrders: [String: (lines: [OrderLine], tip: Wei)] = [:]
     private var lastProposed: Date?
-    private var blockTimes: [Double] = []
-    private let salesKey = "pos.sales"
 
     init() {
         beacon.name = merchantName
-        if let d = UserDefaults.standard.data(forKey: salesKey),
-           let s = try? JSONDecoder().decode([Sale].self, from: d) { sales = s }
+        let d = UserDefaults.standard
+        if let data = d.data(forKey: "pos.sales"), let s = try? JSONDecoder().decode([Sale].self, from: data) { sales = s }
+        if let data = d.data(forKey: "pos.catalog"), let c = try? JSONDecoder().decode([Product].self, from: data), !c.isEmpty {
+            catalog = c
+        } else {
+            catalog = Product.defaults
+        }
         connect()
     }
 
     // MARK: Cart
 
-    var lines: [(product: Product, qty: Int)] {
-        Product.catalog.compactMap { p in cart[p.id].map { (p, $0) } }
+    var visibleProducts: [Product] {
+        catalog.filter { p in
+            (categoryFilter == nil || p.category == categoryFilter) &&
+            (search.isEmpty || p.name.localizedCaseInsensitiveContains(search))
+        }
     }
-    var total: Wei {
-        lines.reduce(customAmount ?? 0) { $0 + $1.product.price * Wei($1.qty) }
-    }
+
+    var lines: [(product: Product, qty: Int)] { catalog.compactMap { p in cart[p.id].map { (p, $0) } } }
+    var subtotal: Wei { lines.reduce(customAmount ?? 0) { $0 + $1.product.price * Wei($1.qty) } }
+    var tip: Wei { subtotal * Wei(tipPercent) / 100 }
+    var total: Wei { subtotal + tip }
     var itemCount: Int { lines.reduce(0) { $0 + $1.qty } + (customAmount == nil ? 0 : 1) }
 
     func add(_ p: Product) { withAnimation(.snappy) { cart[p.id, default: 0] += 1 } }
     func decrement(_ p: Product) {
-        withAnimation(.snappy) {
-            if let q = cart[p.id], q > 1 { cart[p.id] = q - 1 } else { cart[p.id] = nil }
-        }
+        withAnimation(.snappy) { if let q = cart[p.id], q > 1 { cart[p.id] = q - 1 } else { cart[p.id] = nil } }
     }
-    func clear() { withAnimation(.snappy) { cart = [:]; customAmount = nil } }
+    func clear() { withAnimation(.snappy) { cart = [:]; customAmount = nil; tipPercent = 0 } }
 
-    var memo: String {
+    private var memo: String {
         var parts = lines.map { $0.qty > 1 ? "\($0.qty)× \($0.product.name)" : $0.product.name }
         if customAmount != nil { parts.append("Custom") }
+        if tipPercent > 0 { parts.append("Tip \(tipPercent)%") }
         return parts.joined(separator: ", ")
+    }
+
+    // MARK: Catalog CRUD
+
+    func upsert(_ p: Product) {
+        if let i = catalog.firstIndex(where: { $0.id == p.id }) { catalog[i] = p } else { catalog.append(p) }
+    }
+    func remove(_ p: Product) { catalog.removeAll { $0.id == p.id }; cart[p.id] = nil }
+    func unitsSold(_ p: Product) -> Int {
+        sales.flatMap { $0.lines ?? [] }.filter { $0.name == p.name }.reduce(0) { $0 + $1.qty }
     }
 
     // MARK: Charge
@@ -99,8 +198,11 @@ final class POSStore: ObservableObject {
     func startCharge() {
         guard total > 0, isAddress(payout) else { return }
         let req = PaymentRequest(merchant: payout, amount: total, memo: memo, merchantName: merchantName)
+        var orderLines = lines.map { OrderLine(name: $0.product.name, emoji: $0.product.emoji, qty: $0.qty, unitWei: $0.product.priceWei) }
+        if let c = customAmount { orderLines.append(OrderLine(name: "Custom amount", emoji: "✏️", qty: 1, unitWei: String(c))) }
+        pendingOrders[req.invoiceId.hex.lowercased()] = (orderLines, tip)
         stateMs = [:]
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) { charge = .awaiting(req) }
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.86)) { charge = .awaiting(req) }
         beacon.publish(req)
     }
 
@@ -141,17 +243,20 @@ final class POSStore: ObservableObject {
         if state == .proposed {
             let now = Date()
             if let last = lastProposed {
-                blockTimes.append(now.timeIntervalSince(last)); if blockTimes.count > 20 { blockTimes.removeFirst() }
-                blockTimeMs = Int(blockTimes.reduce(0, +) / Double(blockTimes.count) * 1000)
+                let dt = now.timeIntervalSince(last) * 1000
+                if dt < 3000 {
+                    blockTimeHistory.append(dt); if blockTimeHistory.count > 40 { blockTimeHistory.removeFirst() }
+                    blockTimeMs = Int(blockTimeHistory.suffix(15).reduce(0, +) / Double(min(15, blockTimeHistory.count)))
+                }
             }
             lastProposed = now
         }
-        let gasUsed = Int((h["gasUsed"] as? String).flatMap { Wei(hexString: $0) } ?? 0)
+        let gas = Int((h["gasUsed"] as? String).flatMap { Wei(hexString: $0) } ?? 0)
         if let i = recentBlocks.firstIndex(where: { $0.id == id }) {
-            recentBlocks[i].state = state
-        } else {
-            recentBlocks.insert((id, num, state, gasUsed), at: 0)
-            if recentBlocks.count > 7 { recentBlocks.removeLast() }
+            if state.rank > recentBlocks[i].state.rank { recentBlocks[i].state = state }
+        } else if state == .proposed {
+            recentBlocks.insert(BlockRow(id: id, number: num, state: state, gas: gas, seen: Date()), at: 0)
+            if recentBlocks.count > 9 { recentBlocks.removeLast() }
         }
     }
 
@@ -163,7 +268,6 @@ final class POSStore: ObservableObject {
         firstSeen[ev.invoiceId] = first
         let elapsed = now.timeIntervalSince(first)
 
-        // ledger
         if let i = sales.firstIndex(where: { $0.id == ev.invoiceId }) {
             for s in CommitState.timeline where s.rank <= state.rank && sales[i].states[s.rawValue] == nil {
                 sales[i].states[s.rawValue] = elapsed
@@ -171,15 +275,16 @@ final class POSStore: ObservableObject {
         } else {
             var states: [String: Double] = [:]
             for s in CommitState.timeline where s.rank <= state.rank { states[s.rawValue] = elapsed }
-            withAnimation(.snappy) { sales.insert(Sale(event: ev, date: now, states: states), at: 0) }
+            let order = pendingOrders.removeValue(forKey: ev.invoiceId)
+            let sale = Sale(event: ev, date: now, states: states, lines: order?.lines, tipWei: order.map { String($0.tip) })
+            withAnimation(.snappy) { sales.insert(sale, at: 0) }
         }
         saveSales()
 
-        // active charge
         if case .awaiting(let req) = charge, req.invoiceId.hex.lowercased() == ev.invoiceId {
             beacon.publish(nil)
             NSSound(named: "Glass")?.play()
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { charge = .paid(req, ev) }
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) { charge = .paid(req, ev) }
         }
         if case .paid(let req, _) = charge, req.invoiceId.hex.lowercased() == ev.invoiceId {
             for s in CommitState.timeline where s.rank <= state.rank && stateMs[s] == nil {
@@ -188,15 +293,39 @@ final class POSStore: ObservableObject {
         }
     }
 
-    private func saveSales() {
-        if let d = try? JSONEncoder().encode(Array(sales.prefix(200))) { UserDefaults.standard.set(d, forKey: salesKey) }
-    }
-
-    // MARK: Stats
+    // MARK: Analytics
 
     var grossVolume: Wei { sales.reduce(0) { $0 + $1.event.amount } }
+    var tipsTotal: Wei { sales.reduce(0) { $0 + $1.tip } }
+    var avgTicket: Wei { sales.isEmpty ? 0 : grossVolume / Wei(sales.count) }
     var avgFinalityMs: Int? {
         let f = sales.compactMap(\.finalizedMs).filter { $0 > 0 }
         return f.isEmpty ? nil : f.reduce(0, +) / f.count
     }
+    var todaySales: [Sale] { sales.filter { Calendar.current.isDateInToday($0.date) } }
+
+    var customers: [Customer] {
+        Dictionary(grouping: sales) { $0.event.payer.lowercased() }
+            .map { Customer(address: $0.value.first!.event.payer, sales: $0.value) }
+            .sorted { $0.total > $1.total }
+    }
+
+    var topProducts: [(name: String, emoji: String, qty: Int, revenue: Double)] {
+        var agg: [String: (String, Int, Double)] = [:]
+        for l in sales.flatMap({ $0.lines ?? [] }) {
+            let cur = agg[l.name] ?? (l.emoji, 0, 0)
+            agg[l.name] = (l.emoji, cur.1 + l.qty, cur.2 + Double(l.unit * Wei(l.qty)) / 1e18)
+        }
+        return agg.map { ($0.key, $0.value.0, $0.value.1, $0.value.2) }.sorted { $0.revenue > $1.revenue }
+    }
+
+    // MARK: Persistence
+
+    private func saveSales() {
+        if let d = try? JSONEncoder().encode(Array(sales.prefix(500))) { UserDefaults.standard.set(d, forKey: "pos.sales") }
+    }
+    private func saveCatalog() {
+        if let d = try? JSONEncoder().encode(catalog) { UserDefaults.standard.set(d, forKey: "pos.catalog") }
+    }
+    func resetSales() { sales = []; saveSales() }
 }

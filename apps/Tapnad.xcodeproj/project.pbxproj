@@ -7,22 +7,27 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		041D8873DAF17CD8D9FD8AF4 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 954A4CFB32B258B41A2C1EB4 /* Theme.swift */; };
+		0741182D7D547AD78B998666 /* InsightsCatalogSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78ACADF819E2842747C28D3A /* InsightsCatalogSettings.swift */; };
 		107D1A9AEBF80A3DAB3F6DA5 /* TapToPayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A71D92BAB0DE56431243938 /* TapToPayView.swift */; };
 		14AF20FE45114DF1DAA3F251 /* POSStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 813A1B2E8B372CCCC53A2F59 /* POSStore.swift */; };
 		25CD0E93B14B9528AE230F89 /* WalletApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81859A53AFEE9F087BAC6F19 /* WalletApp.swift */; };
+		2D41EEB129384B56FC173DA0 /* OrdersCustomers.swift in Sources */ = {isa = PBXBuildFile; fileRef = D45302A0A1CBC69F13EE466B /* OrdersCustomers.swift */; };
 		4FC021B5CC9949C696CA6808 /* WalletServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52C693CD4C5D7E3465A4FB77 /* WalletServices.swift */; };
-		5C88EF0F1603140C8F39D74D /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BEB0F581697EE98D680EDA0 /* ActivityView.swift */; };
 		646B5AE80E25D73182B5D921 /* WalletStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF57086CDC5AF4FE60259D7D /* WalletStore.swift */; };
 		6728A4E771D9299BFF6A09CD /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = AFFE4315C88D2ACF941A2B0A /* CryptoSwift */; };
 		69E4E2717413A4C2B09BC4AD /* TapBeacon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 736034F688BBBC1300316908 /* TapBeacon.swift */; };
 		79D68A176F2707054DEF3A06 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43AA7AFA14CF1AC0996DABE0 /* HomeView.swift */; };
+		81C6728E77AEC9BD5DF4CB21 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0BB27A21305D9E05B3CED9 /* InsightsView.swift */; };
 		89A227AC0A5F10A288A2A408 /* ReceiveSettingsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = E149663AE63A6F2235DBA044 /* ReceiveSettingsViews.swift */; };
 		92A1C8046F1005D2B96B266C /* Core.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4112F284972684AE4BABDF /* Core.swift */; };
+		92FDF7C3BB26B6C2B366CB12 /* ActivityViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E736ABEA07A11B3E48BE8B9 /* ActivityViews.swift */; };
 		96F927A3FD7540EF8280B10E /* Design.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDCF31FA01A5722D91C28EE4 /* Design.swift */; };
 		99D107E5F2C4580923147456 /* Design.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDCF31FA01A5722D91C28EE4 /* Design.swift */; };
 		9B184FD787AEE2811AB30CE3 /* POSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CF8BD126CA9ACA08C78AA6C /* POSApp.swift */; };
 		B425B44D1B5EEFED22F079B6 /* Core.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4112F284972684AE4BABDF /* Core.swift */; };
 		C7A8DCB19DB33AFB086DCC45 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A6FD47EC7D72BD45AAAFA9 /* RegisterView.swift */; };
+		E63E336D4586567E6460AC9E /* WalletModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 688D0EAAF05E5BF3D811D756 /* WalletModels.swift */; };
 		E7952C8CA2EABCC1BF56DF71 /* EthAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DA65028C79102D7683FBAB1 /* EthAccount.swift */; };
 		FBEFDBD3FD44C548DF17AE01 /* P256K in Frameworks */ = {isa = PBXBuildFile; productRef = 1FD7FCD5BE9D5FA0AE9D3F39 /* P256K */; };
 /* End PBXBuildFile section */
@@ -33,15 +38,20 @@
 		1DA65028C79102D7683FBAB1 /* EthAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EthAccount.swift; sourceTree = "<group>"; };
 		43AA7AFA14CF1AC0996DABE0 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		4B4112F284972684AE4BABDF /* Core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core.swift; sourceTree = "<group>"; };
+		4E736ABEA07A11B3E48BE8B9 /* ActivityViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityViews.swift; sourceTree = "<group>"; };
 		52C693CD4C5D7E3465A4FB77 /* WalletServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletServices.swift; sourceTree = "<group>"; };
 		5A71D92BAB0DE56431243938 /* TapToPayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TapToPayView.swift; sourceTree = "<group>"; };
-		5BEB0F581697EE98D680EDA0 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
+		688D0EAAF05E5BF3D811D756 /* WalletModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletModels.swift; sourceTree = "<group>"; };
 		736034F688BBBC1300316908 /* TapBeacon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TapBeacon.swift; sourceTree = "<group>"; };
+		78ACADF819E2842747C28D3A /* InsightsCatalogSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsCatalogSettings.swift; sourceTree = "<group>"; };
 		813A1B2E8B372CCCC53A2F59 /* POSStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = POSStore.swift; sourceTree = "<group>"; };
 		81859A53AFEE9F087BAC6F19 /* WalletApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletApp.swift; sourceTree = "<group>"; };
 		8CF8BD126CA9ACA08C78AA6C /* POSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = POSApp.swift; sourceTree = "<group>"; };
+		954A4CFB32B258B41A2C1EB4 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		9E6BE7765E41F53C102CB371 /* POS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = POS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B6700ED19BFF085244D8ADAE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		CC0BB27A21305D9E05B3CED9 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
+		D45302A0A1CBC69F13EE466B /* OrdersCustomers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersCustomers.swift; sourceTree = "<group>"; };
 		D5A6FD47EC7D72BD45AAAFA9 /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterView.swift; sourceTree = "<group>"; };
 		E149663AE63A6F2235DBA044 /* ReceiveSettingsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveSettingsViews.swift; sourceTree = "<group>"; };
 		FDCF31FA01A5722D91C28EE4 /* Design.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Design.swift; sourceTree = "<group>"; };
@@ -83,12 +93,14 @@
 		2FA90131DECCCDD151103592 /* POS */ = {
 			isa = PBXGroup;
 			children = (
-				5BEB0F581697EE98D680EDA0 /* ActivityView.swift */,
 				B6700ED19BFF085244D8ADAE /* Info.plist */,
+				78ACADF819E2842747C28D3A /* InsightsCatalogSettings.swift */,
+				D45302A0A1CBC69F13EE466B /* OrdersCustomers.swift */,
 				8CF8BD126CA9ACA08C78AA6C /* POSApp.swift */,
 				813A1B2E8B372CCCC53A2F59 /* POSStore.swift */,
 				D5A6FD47EC7D72BD45AAAFA9 /* RegisterView.swift */,
 				736034F688BBBC1300316908 /* TapBeacon.swift */,
+				954A4CFB32B258B41A2C1EB4 /* Theme.swift */,
 			);
 			path = POS;
 			sourceTree = "<group>";
@@ -96,12 +108,15 @@
 		AE77DC7FCD1B4BF82300E4DB /* Wallet */ = {
 			isa = PBXGroup;
 			children = (
+				4E736ABEA07A11B3E48BE8B9 /* ActivityViews.swift */,
 				1DA65028C79102D7683FBAB1 /* EthAccount.swift */,
 				43AA7AFA14CF1AC0996DABE0 /* HomeView.swift */,
 				0758C9C9C7F586989ED5DD94 /* Info.plist */,
+				CC0BB27A21305D9E05B3CED9 /* InsightsView.swift */,
 				E149663AE63A6F2235DBA044 /* ReceiveSettingsViews.swift */,
 				5A71D92BAB0DE56431243938 /* TapToPayView.swift */,
 				81859A53AFEE9F087BAC6F19 /* WalletApp.swift */,
+				688D0EAAF05E5BF3D811D756 /* WalletModels.swift */,
 				52C693CD4C5D7E3465A4FB77 /* WalletServices.swift */,
 				FF57086CDC5AF4FE60259D7D /* WalletStore.swift */,
 			);
@@ -205,13 +220,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5C88EF0F1603140C8F39D74D /* ActivityView.swift in Sources */,
 				92A1C8046F1005D2B96B266C /* Core.swift in Sources */,
 				96F927A3FD7540EF8280B10E /* Design.swift in Sources */,
+				0741182D7D547AD78B998666 /* InsightsCatalogSettings.swift in Sources */,
+				2D41EEB129384B56FC173DA0 /* OrdersCustomers.swift in Sources */,
 				9B184FD787AEE2811AB30CE3 /* POSApp.swift in Sources */,
 				14AF20FE45114DF1DAA3F251 /* POSStore.swift in Sources */,
 				C7A8DCB19DB33AFB086DCC45 /* RegisterView.swift in Sources */,
 				69E4E2717413A4C2B09BC4AD /* TapBeacon.swift in Sources */,
+				041D8873DAF17CD8D9FD8AF4 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -219,13 +236,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				92FDF7C3BB26B6C2B366CB12 /* ActivityViews.swift in Sources */,
 				B425B44D1B5EEFED22F079B6 /* Core.swift in Sources */,
 				99D107E5F2C4580923147456 /* Design.swift in Sources */,
 				E7952C8CA2EABCC1BF56DF71 /* EthAccount.swift in Sources */,
 				79D68A176F2707054DEF3A06 /* HomeView.swift in Sources */,
+				81C6728E77AEC9BD5DF4CB21 /* InsightsView.swift in Sources */,
 				89A227AC0A5F10A288A2A408 /* ReceiveSettingsViews.swift in Sources */,
 				107D1A9AEBF80A3DAB3F6DA5 /* TapToPayView.swift in Sources */,
 				25CD0E93B14B9528AE230F89 /* WalletApp.swift in Sources */,
+				E63E336D4586567E6460AC9E /* WalletModels.swift in Sources */,
 				4FC021B5CC9949C696CA6808 /* WalletServices.swift in Sources */,
 				646B5AE80E25D73182B5D921 /* WalletStore.swift in Sources */,
 			);

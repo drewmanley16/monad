@@ -12,10 +12,14 @@ struct TapToPayView: View {
 
             VStack(spacing: 0) {
                 topBar
-                WalletCard(balance: store.balance, address: store.address, compact: true)
-                    .frame(maxWidth: store.phase == .scanning ? 300 : 200)
-                    .padding(.top, 8)
-                    .animation(.spring(response: 0.5, dampingFraction: 0.85), value: store.phase)
+                if let card = store.selectedCard {
+                    WalletCard(card: card, balance: store.balance, compact: true)
+                        .id(card.id)
+                        .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
+                        .frame(maxWidth: store.phase == .scanning ? 300 : 200)
+                        .padding(.top, 8)
+                        .animation(.spring(response: 0.5, dampingFraction: 0.85), value: store.phase)
+                }
 
                 Spacer(minLength: 0)
                 content
@@ -102,7 +106,7 @@ struct TapToPayView: View {
                 .minimumScaleFactor(0.5).lineLimit(1)
 
                 VStack(spacing: 0) {
-                    detailRow("Pay with", "Tapnad · \(store.balance.map { MON.format($0, maxFraction: 2) } ?? "—") MON")
+                    cardPicker
                     Divider()
                     detailRow("To", shortAddress(req.merchant), mono: true)
                     Divider()
@@ -133,6 +137,33 @@ struct TapToPayView: View {
             }
         }
         .padding(.bottom, 16)
+    }
+
+    private var cardPicker: some View {
+        HStack {
+            Text("Pay with").foregroundStyle(.secondary)
+            Spacer()
+            Menu {
+                ForEach(store.cards) { c in
+                    Button {
+                        withAnimation(.snappy) { store.selectedCardId = c.id }; Haptics.soft()
+                    } label: {
+                        Text("\(c.name) · \(store.balances[c.id].map { MON.format($0, maxFraction: 2) } ?? "—") MON")
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    if let c = store.selectedCard {
+                        RoundedRectangle(cornerRadius: 3).fill(c.theme.gradient).frame(width: 22, height: 14)
+                        Text("\(c.name) · \(store.balance.map { MON.format($0, maxFraction: 2) } ?? "—") MON").foregroundStyle(.primary)
+                    }
+                    Image(systemName: "chevron.up.chevron.down").font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+            .disabled(store.phase != .confirm && !isFailed)
+        }
+        .font(.subheadline)
+        .padding(.horizontal, 16).padding(.vertical, 13)
     }
 
     private func detailRow(_ k: String, _ v: String, mono: Bool = false) -> some View {

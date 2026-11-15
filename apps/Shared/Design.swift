@@ -129,3 +129,33 @@ struct CommitTimeline: View {
         .animation(.spring(duration: 0.35), value: rows.map(\.ms))
     }
 }
+
+/// Deterministic gradient avatar from an address/name (like a Stripe customer bubble).
+struct AddressAvatar: View {
+    let seed: String
+    var label: String? = nil
+    var size: CGFloat = 36
+
+    private var hues: (Double, Double) {
+        var h: UInt64 = 1469598103934665603
+        for b in seed.lowercased().utf8 { h = (h ^ UInt64(b)) &* 1099511628211 }
+        let a = Double(h % 360) / 360, b = Double((h / 360) % 360) / 360
+        return (a, b)
+    }
+
+    var body: some View {
+        let (a, b) = hues
+        ZStack {
+            RoundedRectangle(cornerRadius: size * 0.3, style: .continuous)
+                .fill(LinearGradient(colors: [Color(hue: a, saturation: 0.65, brightness: 0.95),
+                                              Color(hue: b, saturation: 0.75, brightness: 0.7)],
+                                     startPoint: .topLeading, endPoint: .bottomTrailing))
+            if let label {
+                Text(String(label.prefix(1)).uppercased())
+                    .font(.system(size: size * 0.42, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+        }
+        .frame(width: size, height: size)
+    }
+}

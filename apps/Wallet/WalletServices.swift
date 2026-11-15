@@ -8,9 +8,13 @@ import UIKit
 // MARK: - Keychain
 
 enum Keychain {
-    private static let account = "tapnad.privatekey"
+    static let legacyAccount = "tapnad.privatekey"
 
-    static func save(_ data: Data) {
+    static func delete(account: String) {
+        SecItemDelete([kSecClass as String: kSecClassGenericPassword, kSecAttrAccount as String: account] as CFDictionary)
+    }
+
+    static func save(_ data: Data, account: String = legacyAccount) {
         let base: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrAccount as String: account]
         SecItemDelete(base as CFDictionary)
         var add = base
@@ -19,7 +23,7 @@ enum Keychain {
         SecItemAdd(add as CFDictionary, nil)
     }
 
-    static func load() -> Data? {
+    static func load(account: String = legacyAccount) -> Data? {
         let q: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword, kSecAttrAccount as String: account,
             kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne,
