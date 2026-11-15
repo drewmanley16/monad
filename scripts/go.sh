@@ -22,7 +22,8 @@ pkill -x "Tapnad POS" 2>/dev/null || true; sleep 1
 open "build/Build/Products/Debug/Tapnad POS.app"
 
 sleep 2
-WALLET=$(xcrun simctl spawn "$SIM" defaults read com.drewmanley.tapnad.wallet tapnad.address)
+D=$(xcrun simctl get_app_container "$SIM" com.drewmanley.tapnad.wallet data)
+WALLET=$(python3 -c "import plistlib,sys;print(plistlib.load(open(sys.argv[1],'rb'))['tapnad.address'])" "$D/Library/Preferences/com.drewmanley.tapnad.wallet.plist")
 BAL=$(cast balance "$DEPLOYER" --rpc-url "$RPC_URL")
 # send half of what's left (max 2 MON) to the simulator wallet
 AMT=$(python3 -c "print(min($BAL//2, 2*10**18))")

@@ -11,7 +11,7 @@ enum Chain {
     static let explorerTx = "https://testnet.monadexplorer.com/tx/"
     static let faucet = URL(string: "https://faucet.monad.xyz")!
     /// MonadPay contract on testnet (written by contracts/deploy.sh)
-    static let monadPay = "0x0000000000000000000000000000000000000000"
+    static let monadPay = "0xF825f70E27b7f65bB44475FB4530b7c09245F128"
 }
 
 // MARK: - Hex
