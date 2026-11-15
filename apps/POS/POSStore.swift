@@ -285,11 +285,11 @@ final class POSStore: ObservableObject {
         }
     }
     func increment(_ line: CartLine) {
-        guard let i = cart.firstIndex(of: line), qty(of: line.product) < (line.product.stock ?? .max) else { return }
+        guard let i = cart.firstIndex(where: { $0.id == line.id }), qty(of: line.product) < (line.product.stock ?? .max) else { return }
         withAnimation(.snappy) { cart[i].qty += 1 }
     }
     func decrement(_ line: CartLine) {
-        guard let i = cart.firstIndex(of: line) else { return }
+        guard let i = cart.firstIndex(where: { $0.id == line.id }) else { return }
         withAnimation(.snappy) { if cart[i].qty > 1 { cart[i].qty -= 1 } else { cart.remove(at: i) } }
     }
     func clear() {

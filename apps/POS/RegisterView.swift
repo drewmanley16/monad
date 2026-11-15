@@ -178,6 +178,13 @@ struct ItemTile: View {
     }
 }
 
+struct QtyPress: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(configuration.isPressed ? Color.black.opacity(0.08) : .clear, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+}
+
 struct TilePress: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label.scaleEffect(configuration.isPressed ? 0.97 : 1).animation(.easeOut(duration: 0.1), value: configuration.isPressed)
@@ -393,11 +400,15 @@ struct TicketView: View {
                 }
                 Spacer()
                 HStack(spacing: 0) {
-                    Button(action: minus) { Image(systemName: "minus").frame(width: 28, height: 28) }
-                    if let plus { Button(action: plus) { Image(systemName: "plus").frame(width: 28, height: 28) } }
+                    Button(action: minus) { Image(systemName: "minus").frame(width: 32, height: 30).contentShape(Rectangle()) }
+                    if let plus {
+                        Rectangle().fill(T.rule).frame(width: 1, height: 16)
+                        Button(action: plus) { Image(systemName: "plus").frame(width: 32, height: 30).contentShape(Rectangle()) }
+                    }
                 }
-                .buttonStyle(.plain).font(.system(size: 11, weight: .semibold)).foregroundStyle(T.dim)
-                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(T.rule))
+                .buttonStyle(QtyPress()).font(.system(size: 11, weight: .bold)).foregroundStyle(T.text)
+                .background(Color.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(.white.opacity(0.9)))
                 Text(Money.usd(amount)).font(T.mono(14)).frame(width: 64, alignment: .trailing)
             }
             .padding(.horizontal, 20).padding(.vertical, 12)
