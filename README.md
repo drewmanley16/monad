@@ -15,9 +15,13 @@ Approved the moment the block is proposed. Final in under a second.
 
 <a href="https://github.com/drewmanley16/monad/releases/tag/launch-video"><img src="docs/demo.gif" width="720" alt="Hold, tap, pay: an iPhone taps the Tapnad register and the payment is approved on Monad"></a>
 
-**▶ [Watch the 39-second launch video](https://github.com/drewmanley16/monad/releases/tag/launch-video)**
-
 </div>
+
+## Launch video
+
+https://github.com/user-attachments/assets/4bed40dc-1c35-4848-ae43-a1920a88f044
+
+<sub>Full-resolution 16:9 and 4:5 cuts are on the [launch-video release](https://github.com/drewmanley16/monad/releases/tag/launch-video).</sub>
 
 ---
 
